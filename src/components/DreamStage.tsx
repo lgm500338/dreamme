@@ -28,6 +28,7 @@ import {
   CompanionConfig,
   DreamPlace,
   ExperienceMode,
+  FrameMode,
   Language,
   PropId,
   SavedSnapshot,
@@ -39,9 +40,11 @@ import { ambientAudio } from '../utils/ambientAudio';
 import { AvatarRenderer } from './AvatarRenderer';
 import { SceneLights } from './stage/SceneLights';
 import { Joystick } from './stage/Joystick';
+import { FrameToggle } from './FrameToggle';
 import {
   P,
   StageSize,
+  clampCam,
   coverFraction,
   customGeometry,
   imgToStage,
@@ -83,6 +86,9 @@ interface DreamStageProps {
   onSaveSnapshot: (snap: SavedSnapshot) => void;
   onUpdateAvatarProp: (prop: PropId) => void;
   onToggleCompanion: (enabled: boolean) => void;
+  /** landscape (default) or vertical 9:16 shorts framing */
+  frameMode?: FrameMode;
+  onChangeFrameMode?: (mode: FrameMode) => void;
 }
 
 /** A character that this device moves around (me, my companion, virtual neighbours). */
@@ -104,6 +110,29 @@ const VIRTUAL_NEIGHBORS: Array<Omit<TogetherPeer, 'roomId' | 'x' | 'y' | 'facing
   { clientId: 'vn-2', name: '민서', outfit: 'resort', hairStyle: 'longWave', hairColor: '#4A3428', skinTone: 'fair', prop: 'none', isVirtual: true, idle: 'stand' },
   { clientId: 'vn-3', name: 'Alex', outfit: 'tailored', hairStyle: 'shortNeat', hairColor: '#1E1A18', skinTone: 'olive', prop: 'wine', isVirtual: true, idle: 'wine' },
 ];
+
+/** break a caption into lines that fit `maxW` (works for Korean too: falls back to characters) */
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] => {
+  const lines: string[] = [];
+  let line = '';
+  const tokens = text.includes(' ') ? text.split(/(\s+)/) : [...text];
+  for (const tok of tokens) {
+    const next = line + tok;
+    if (ctx.measureText(next).width > maxW && line.trim()) {
+      lines.push(line.trim());
+      line = tok.trimStart();
+      // a single very long word: split it by characters
+      while (ctx.measureText(line).width > maxW && line.length > 1) {
+        let cut = line.length - 1;
+        while (cut > 1 && ctx.measureText(line.slice(0, cut)).width > maxW) cut--;
+        lines.push(line.slice(0, cut));
+        line = line.slice(cut);
+      }
+    } else line = next;
+  }
+  if (line.trim()) lines.push(line.trim());
+  return lines;
+};
 
 const mkMover = (p: P, idle: AvatarAction = 'stand'): Mover => ({
   x: p.x,
@@ -137,7 +166,10 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   onSaveSnapshot,
   onUpdateAvatarProp,
   onToggleCompanion,
+  frameMode = 'landscape',
+  onChangeFrameMode,
 }) => {
+  const portrait = frameMode === 'portrait';
   const t = tFor(lang);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const clientIdRef = useRef<string>(`dm_${Math.random().toString(36).slice(2, 10)}`);
@@ -161,13 +193,23 @@ export const DreamStage: React.FC<DreamStageProps> = ({
 
   const stageImage = customImage || place.image;
   const stageTitle = customTitle || place.name[lang];
-  // Only the part of the picture you can actually see on this screen is walkable
-  const viewX0 = useMemo(() => {
-    if (!stageSize.w) return 0;
+  // Only the part of the picture you can actually see on this screen is walkable.
+  // The 9:16 view is a camera that pans with you, so there the whole picture is walkable.
+  const viewFx = useMemo(() => {
+    if (!stageSize.w) return 1;
     const aspect = customImage ? customAspect : place.stage.imageAspect;
-    const { fx } = coverFraction(stageSize, aspect);
-    return Math.round((0.5 - fx / 2 + 0.065 * fx) * 1000) / 1000;
+    return coverFraction(stageSize, aspect).fx;
   }, [stageSize, customImage, customAspect, place.stage.imageAspect]);
+  const viewX0 = useMemo(() => {
+    const x0 = portrait ? 0.065 * viewFx : 0.5 - viewFx / 2 + 0.065 * viewFx;
+    return Math.round(x0 * 1000) / 1000;
+  }, [viewFx, portrait]);
+  const viewFxRef = useRef(viewFx);
+  viewFxRef.current = viewFx;
+  const portraitRef = useRef(portrait);
+  portraitRef.current = portrait;
+  /** image x at the centre of the screen */
+  const camRef = useRef(0.5);
   const geo: StageGeometry = useMemo(() => {
     let base = place.stage;
     if (customImage) {
@@ -546,6 +588,18 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         });
       }
 
+      // 9:16 camera glides after me
+      const fx = viewFxRef.current;
+      const camTarget = portraitRef.current ? clampCam(me.x, fx) : 0.5;
+      const cam = camRef.current;
+      if (Math.abs(camTarget - cam) > 0.0004) {
+        camRef.current = cam + (camTarget - cam) * Math.min(1, dt * 5);
+        changed = true;
+      } else if (cam !== camTarget) {
+        camRef.current = camTarget;
+        changed = true;
+      }
+
       if (changed) setFrame((f) => (f + 1) % 1_000_000);
       raf = requestAnimationFrame(loop);
     };
@@ -667,7 +721,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
     if (!stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
     const sp = { x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 100 };
-    const ip = stageToImg(sp, { w: rect.width, h: rect.height }, geo.imageAspect);
+    const ip = stageToImg(sp, { w: rect.width, h: rect.height }, geo.imageAspect, camRef.current);
     const me = meRef.current;
     if (me.idle === 'sit' && !isWalkable(geo, me)) {
       const p = nearestWalkable(geo, me);
@@ -730,7 +784,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
     if (!stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
     const sp = { x: ((e.clientX - rect.left) / rect.width) * 100, y: ((e.clientY - rect.top) / rect.height) * 100 };
-    const ip = stageToImg(sp, { w: rect.width, h: rect.height }, geo.imageAspect);
+    const ip = stageToImg(sp, { w: rect.width, h: rect.height }, geo.imageAspect, camRef.current);
     if (ip.y < geo.horizonY) return; // tapped the sky / wall
     const me = meRef.current;
     if (me.idle === 'sit' && !isWalkable(geo, me)) {
@@ -777,8 +831,9 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   const capturePostcard = async () => {
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = 1200;
-      canvas.height = 840;
+      // 9:16 = full-bleed shorts card (1080×1920); landscape = framed postcard
+      canvas.width = portrait ? 1080 : 1200;
+      canvas.height = portrait ? 1920 : 840;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       ctx.fillStyle = '#FAF8F4';
@@ -792,9 +847,10 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         el.src = stageImage;
       });
 
-      const pad = 44;
+      const pad = portrait ? 0 : 44;
       const photoW = canvas.width - pad * 2;
-      const photoH = 620;
+      const photoH = portrait ? canvas.height : 620;
+      const camX = camRef.current;
       const imgRatio = img.width / img.height;
       const boxRatio = photoW / photoH;
       let sx = 0;
@@ -803,7 +859,8 @@ export const DreamStage: React.FC<DreamStageProps> = ({
       let sh = img.height;
       if (imgRatio > boxRatio) {
         sw = img.height * boxRatio;
-        sx = (img.width - sw) / 2;
+        // same slice of the picture you are looking at (the 9:16 camera pans)
+        sx = Math.min(img.width - sw, Math.max(0, camX * img.width - sw / 2));
       } else {
         sh = img.width / boxRatio;
         sy = (img.height - sh) / 2;
@@ -838,9 +895,10 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         const aspect = img.width / img.height;
         const sf = coverFraction(stage, aspect);
         const pf = coverFraction({ w: photoW, h: photoH }, aspect);
+        const photoCam = (sx + sw / 2) / img.width;
         const toPhoto = (px: number, py: number) => {
-          const ip = stageToImg({ x: (px / stage.w) * 100, y: (py / stage.h) * 100 }, stage, aspect);
-          return { x: pad + ((ip.x - 0.5) / pf.fx + 0.5) * photoW, y: pad + ((ip.y - 0.5) / pf.fy + 0.5) * photoH };
+          const ip = stageToImg({ x: (px / stage.w) * 100, y: (py / stage.h) * 100 }, stage, aspect, camX);
+          return { x: pad + ((ip.x - photoCam) / pf.fx + 0.5) * photoW, y: pad + ((ip.y - 0.5) / pf.fy + 0.5) * photoH };
         };
         const pxScale = photoH / pf.fy / (stage.h / sf.fy);
         const charEls = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-char]')).sort(
@@ -893,7 +951,33 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         }
       }
 
-      if (affirmation.trim()) {
+      if (portrait) {
+        // shorts card: caption + title sit on a dark fade at the bottom of the picture
+        const fadeTop = photoH - 560;
+        const scrim = ctx.createLinearGradient(0, fadeTop, 0, photoH);
+        scrim.addColorStop(0, 'rgba(0,0,0,0)');
+        scrim.addColorStop(0.45, 'rgba(10,14,22,0.45)');
+        scrim.addColorStop(1, 'rgba(10,14,22,0.86)');
+        ctx.fillStyle = scrim;
+        ctx.fillRect(0, fadeTop, photoW, photoH - fadeTop);
+        ctx.textAlign = 'center';
+        if (affirmation.trim()) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '600 50px "Plus Jakarta Sans", "Noto Sans KR", sans-serif';
+          const lines = wrapText(ctx, `“${affirmation.trim()}”`, photoW - 140).slice(0, 4);
+          lines.forEach((ln, i) => ctx.fillText(ln, photoW / 2, photoH - 330 - (lines.length - 1 - i) * 66));
+        }
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '600 58px Georgia, serif';
+        ctx.fillText(stageTitle, photoW / 2, photoH - 200);
+        ctx.fillStyle = 'rgba(255,255,255,0.78)';
+        ctx.font = '400 32px "Plus Jakarta Sans", "Noto Sans KR", sans-serif';
+        const d = new Date().toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        ctx.fillText(`${avatar.name} · ${d}`, photoW / 2, photoH - 140);
+        ctx.fillStyle = '#DFC390';
+        ctx.font = '600 36px Georgia, serif';
+        ctx.fillText('DreamMe', photoW / 2, photoH - 70);
+      } else if (affirmation.trim()) {
         const scrim = ctx.createLinearGradient(0, pad + photoH - 130, 0, pad + photoH);
         scrim.addColorStop(0, 'rgba(0,0,0,0)');
         scrim.addColorStop(1, 'rgba(10,14,22,0.72)');
@@ -906,6 +990,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
       }
       ctx.restore();
 
+      if (!portrait) {
       ctx.fillStyle = '#14171F';
       ctx.font = '600 32px Georgia, serif';
       ctx.textAlign = 'left';
@@ -918,6 +1003,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
       ctx.fillStyle = '#8A6D3B';
       ctx.font = '600 20px Georgia, serif';
       ctx.fillText('DreamMe', canvas.width - pad, pad + photoH + 92);
+      }
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.84);
       onSaveSnapshot({
@@ -928,6 +1014,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         timeOfDay,
         imageDataUrl: dataUrl,
         createdAt: new Date().toISOString(),
+        frame: frameMode,
       });
       setLatestSnapshotUrl(dataUrl);
       setSnapshotBanner(t.stage.snapshotSaved);
@@ -1079,6 +1166,9 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   items.sort((a, b) => a.y - b.y);
 
   const { fy } = coverFraction(stageSize.w ? stageSize : { w: 4, h: 3 }, geo.imageAspect);
+  // keep the camera inside the picture even right after a resize / mode switch
+  const cam = portrait ? clampCam(camRef.current, viewFx) : 0.5;
+  camRef.current = cam;
   const figurePx = (y: number) => (personHeight(geo, y) / fy) * stageSize.h * peopleScale;
 
   // Name tags float above heads and nudge apart so they never pile up
@@ -1087,7 +1177,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
     const placed: Array<{ key: string; cx: number; top: number; w: number; name: string; isMe?: boolean; greeting?: string; smooth?: boolean }> = [];
     const byFront = [...items].sort((a, b) => b.y - a.y);
     for (const it of byFront) {
-      const sp = imgToStage(it, stageSize, geo.imageAspect);
+      const sp = imgToStage(it, stageSize, geo.imageAspect, cam);
       const cx = (sp.x / 100) * stageSize.w;
       let top = (sp.y / 100) * stageSize.h - figurePx(it.y) - 6;
       const w = Math.min(130, 18 + [...it.name].reduce((acc, ch) => acc + (ch.charCodeAt(0) > 0x2e80 ? 11 : 6.5), 0));
@@ -1104,6 +1194,18 @@ export const DreamStage: React.FC<DreamStageProps> = ({
 
   const unlockedProps = AVATAR_PROPS.filter((p) => goalProgress >= p.unlockProgress);
   const peopleCount = Object.keys(livePeers).length + 1 + (showVirtualNeighbors ? VIRTUAL_NEIGHBORS.length : 0);
+
+  const joystick = (
+    <Joystick
+      onChange={onJoystick}
+      size={portrait ? 104 : 112}
+      labels={
+        lang === 'ko'
+          ? { forward: '앞', back: '뒤', left: '왼쪽', right: '오른쪽' }
+          : { forward: 'Fwd', back: 'Back', left: 'Left', right: 'Right' }
+      }
+    />
+  );
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#0E1117] text-white flex flex-col">
@@ -1184,6 +1286,8 @@ export const DreamStage: React.FC<DreamStageProps> = ({
             })}
           </div>
 
+          {onChangeFrameMode && <FrameToggle lang={lang} value={frameMode} onChange={onChangeFrameMode} tone="dark" />}
+
           <button
             type="button"
             onClick={toggleSound}
@@ -1211,13 +1315,25 @@ export const DreamStage: React.FC<DreamStageProps> = ({
             applyParallax(((e.clientX - rect.left) / rect.width - 0.5) * -16, ((e.clientY - rect.top) / rect.height - 0.5) * -8);
           }}
           onMouseLeave={() => applyParallax(0, 0)}
-          className="relative w-full max-w-6xl aspect-[4/3] sm:aspect-[16/9] max-h-[68vh] rounded-2xl overflow-hidden cursor-pointer border border-white/12 shadow-2xl select-none touch-none bg-[#161B26]"
+          className={`relative rounded-2xl overflow-hidden cursor-pointer border border-white/12 shadow-2xl select-none touch-none bg-[#161B26] ${
+            portrait ? 'shrink-0' : 'w-full max-w-6xl aspect-[4/3] sm:aspect-[16/9] max-h-[68vh]'
+          }`}
+          style={portrait ? { aspectRatio: '9 / 16', height: 'min(74vh, calc((100vw - 24px) * 16 / 9))' } : undefined}
         >
           <div
             ref={backdropRef}
             className="absolute -inset-4 transition-transform duration-300 ease-out will-change-transform"
             style={{ transform: 'translate3d(0px, 0px, 0) scale(1.04)' }}
           >
+            <div
+              className="absolute inset-y-0"
+              style={
+                // backdrop is 16px larger than the stage on each side; line the picture up with the stage itself
+                portrait && viewFx < 1 && stageSize.w
+                  ? { top: 16, bottom: 16, width: stageSize.w / viewFx, left: 16 - ((cam - viewFx / 2) / viewFx) * stageSize.w }
+                  : { left: 0, right: 0 }
+              }
+            >
             <img
               src={stageImage}
               alt={stageTitle}
@@ -1238,6 +1354,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
               }}
             />
             {geo.lights && <SceneLights variant={geo.lights} timeOfDay={timeOfDay} />}
+            </div>
           </div>
 
           {timeOfDay === 'sunset' && (
@@ -1302,6 +1419,18 @@ export const DreamStage: React.FC<DreamStageProps> = ({
             </button>
           )}
 
+          {portrait && (
+            <div
+              className="absolute bottom-3 left-3 z-[140] opacity-90"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerMove={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+            >
+              {joystick}
+            </div>
+          )}
+
           {stampToast && (
             <div className="absolute top-4 left-4 z-[130] px-3.5 py-2 rounded-xl bg-black/70 border border-white/15 text-xs text-white flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-[#DFC390]" />
@@ -1312,7 +1441,11 @@ export const DreamStage: React.FC<DreamStageProps> = ({
           )}
 
           {snapshotBanner && (
-            <div className="absolute top-4 right-4 z-[130] px-3.5 py-2 rounded-xl bg-white text-[#14171F] shadow-lg text-xs font-medium flex items-center gap-2.5">
+            <div
+              className={`absolute z-[130] px-3.5 py-2 rounded-xl bg-white text-[#14171F] shadow-lg text-xs font-medium flex items-center gap-2.5 ${
+                portrait ? 'top-14 left-3 right-3 justify-between' : 'top-4 right-4'
+              }`}
+            >
               <span>{snapshotBanner}</span>
               {latestSnapshotUrl && (
                 <button
@@ -1333,7 +1466,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
           {/* Depth-sorted characters — GPU transforms only */}
           {stageSize.w > 0 &&
             items.map((item) => {
-              const sp = imgToStage(item, stageSize, geo.imageAspect);
+              const sp = imgToStage(item, stageSize, geo.imageAspect, cam);
               const scale = figurePx(item.y) / (AVATAR_BASE * FIGURE_PX_PER_SIZE);
               return (
                 <div
@@ -1395,18 +1528,10 @@ export const DreamStage: React.FC<DreamStageProps> = ({
 
         </div>
 
-        {/* Game joystick, right under the scene so it never hides anything */}
-        <div className="w-full max-w-6xl mt-3 flex items-center gap-4">
-          <Joystick
-            onChange={onJoystick}
-            size={112}
-            labels={
-              lang === 'ko'
-                ? { forward: '앞', back: '뒤', left: '왼쪽', right: '오른쪽' }
-                : { forward: 'Fwd', back: 'Back', left: 'Left', right: 'Right' }
-            }
-          />
-          <p className="text-[12px] leading-relaxed text-white/60">{t.stage.tapFloorHint}</p>
+        {/* Game joystick, right under the scene so it never hides anything (9:16: it floats on the scene, like a phone game) */}
+        <div className={`w-full max-w-6xl mt-3 flex items-center gap-4 ${portrait ? 'justify-center' : ''}`}>
+          {!portrait && joystick}
+          <p className={`text-[12px] leading-relaxed text-white/60 ${portrait ? 'text-center max-w-sm' : ''}`}>{t.stage.tapFloorHint}</p>
         </div>
 
         {/* Bottom Control Dock */}
