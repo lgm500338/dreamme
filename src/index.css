@@ -1,0 +1,267 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #f8f7f4;
+    color: #14171f;
+    overflow-x: hidden;
+  }
+
+  h1, h2, .font-editorial {
+    font-family: var(--font-display);
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes ocean-shimmer {
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateX(0px);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translateX(10px);
+  }
+}
+
+@keyframes star-twinkle {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes avatar-breathe {
+  0%, 100% {
+    transform: translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateY(-2px) scaleY(1.012);
+  }
+}
+
+@keyframes avatar-walk {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(-1.5deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(1.5deg);
+  }
+}
+
+@keyframes wave-arm {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-16deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-14deg);
+  }
+}
+
+.animate-gentle-float {
+  animation: gentle-float 4s ease-in-out infinite;
+}
+
+.animate-ocean-shimmer {
+  animation: ocean-shimmer 5.5s ease-in-out infinite;
+}
+
+.animate-star-twinkle {
+  animation: star-twinkle 3.2s ease-in-out infinite;
+}
+
+.animate-avatar-breathe {
+  animation: avatar-breathe 3.4s ease-in-out infinite;
+}
+
+.animate-avatar-walk {
+  animation: avatar-walk 0.55s ease-in-out infinite;
+}
+
+.animate-wave-arm {
+  transform-origin: 60px 88px;
+  animation: wave-arm 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-gentle-float,
+  .animate-ocean-shimmer,
+  .animate-star-twinkle,
+  .animate-avatar-breathe,
+  .animate-avatar-walk,
+  .animate-wave-arm {
+    animation: none !important;
+  }
+}
+
+
+/* ===================== 2D skeleton character ===================== */
+/* angles: rotate(+) swings a hanging limb towards the back (-x); characters face right */
+.av-skel [class^='j-'],
+.av-skel [class*=' j-'] {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+.av-skel .j-shL { transform: rotate(8deg); }
+.av-skel .j-shR { transform: rotate(-8deg); }
+.av-skel .j-elL { transform: rotate(-4deg); }
+.av-skel .j-elR { transform: rotate(4deg); }
+.av-skel .j-blink { transform-origin: 60px 42px; animation: sk-blink 4.6s infinite; }
+
+/* idle: breathing */
+.pose-idle .j-torso, .pose-drink .j-torso { animation: sk-breathe 3.4s ease-in-out infinite; }
+.pose-idle .j-head, .pose-drink .j-head { animation: sk-head-sway 5s ease-in-out infinite; }
+.pose-idle .j-shL { animation: sk-arm-sway-l 3.4s ease-in-out infinite; }
+.pose-idle .j-shR { animation: sk-arm-sway-r 3.4s ease-in-out infinite; }
+
+/* holding a drink (idle / walk / sit) */
+.av-skel .j-shR.hold { animation: none; transform: rotate(-10deg); }
+.av-skel .j-elR.hold { animation: none; transform: rotate(-129deg); }
+.av-skel .j-elR.hold .j-glass { transform: rotate(139deg); }
+
+/* drink: small sip lift */
+.pose-drink .j-shR.hold { animation: sk-sip-sh 4s ease-in-out infinite; }
+
+/* walk cycle */
+.pose-walk .j-root { animation: sk-bob 0.4s ease-in-out infinite; }
+.pose-walk .j-torso { transform: rotate(2deg); }
+.pose-walk .j-thighL { animation: sk-thigh-a 0.8s linear infinite; }
+.pose-walk .j-thighR { animation: sk-thigh-b 0.8s linear infinite; }
+.pose-walk .j-kneeL { animation: sk-knee-a 0.8s linear infinite; }
+.pose-walk .j-kneeR { animation: sk-knee-b 0.8s linear infinite; }
+.pose-walk .j-shL { animation: sk-arm-a 0.8s ease-in-out infinite; }
+.pose-walk .j-shR { animation: sk-arm-b 0.8s ease-in-out infinite; }
+.pose-walk .j-elL, .pose-walk .j-elR:not(.hold) { transform: rotate(-14deg); }
+
+/* wave */
+.pose-wave .j-shR { transform: rotate(-155deg); }
+.pose-wave .j-elR { animation: sk-wave 0.55s ease-in-out infinite alternate; }
+.pose-wave .j-torso { animation: sk-breathe 3.4s ease-in-out infinite; }
+
+/* toast / cheers */
+.pose-toast .j-shR { animation: sk-toast-sh 2.2s ease-in-out infinite; }
+.pose-toast .j-elR { animation: sk-toast-el 2.2s ease-in-out infinite; }
+.pose-toast .j-elR .j-glass { animation: sk-toast-glass 2.2s ease-in-out infinite; }
+.pose-toast .j-sparkle { animation: sk-sparkle 2.2s ease-in-out infinite; }
+.pose-toast .j-torso { animation: sk-breathe 2.2s ease-in-out infinite; }
+.pose-toast .j-shL { transform: rotate(14deg); }
+
+/* sit */
+.pose-sit .j-root { transform: translateY(20px); }
+.pose-sit .j-torso { transform: rotate(-4deg); }
+.pose-sit .j-thighL, .pose-sit .j-thighR { transform: rotate(-84deg); }
+.pose-sit .j-kneeL, .pose-sit .j-kneeR { transform: rotate(84deg); }
+.pose-sit .j-thighL { transform: rotate(-78deg); }
+.pose-sit .j-shL { transform: rotate(-28deg); }
+.pose-sit .j-elL { transform: rotate(-52deg); }
+.pose-sit .j-shR:not(.hold) { transform: rotate(-32deg); }
+.pose-sit .j-elR:not(.hold) { transform: rotate(-50deg); }
+.pose-sit .j-head { animation: sk-head-sway 5s ease-in-out infinite; }
+.pose-sit .j-shadow { transform: translate(6px, -2px); }
+
+/* greet: gentle bow + nod */
+.pose-greet .j-torso { animation: sk-bow 2.4s ease-in-out infinite; }
+.pose-greet .j-head { animation: sk-nod 2.4s ease-in-out infinite; }
+.pose-greet .j-shL { transform: rotate(-14deg); }
+.pose-greet .j-elL { transform: rotate(-60deg); }
+.pose-greet .j-shR { transform: rotate(14deg); }
+.pose-greet .j-elR { transform: rotate(60deg); }
+
+/* sign: book up, pen hand */
+.pose-sign .j-shR { transform: rotate(-28deg); }
+.pose-sign .j-elR { transform: rotate(-72deg); }
+.pose-sign .j-elR .j-glass { transform: rotate(100deg) translate(-6px, -8px); }
+.pose-sign .j-shL { animation: sk-write 1.2s ease-in-out infinite; }
+.pose-sign .j-elL { transform: rotate(-95deg); }
+.pose-sign .j-head { transform: rotate(4deg); }
+
+@keyframes sk-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes sk-breathe { 0%, 100% { transform: translateY(0) scale(1, 1); } 50% { transform: translateY(-0.8px) scale(1.012, 1.018); } }
+@keyframes sk-head-sway { 0%, 100% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.8deg); } }
+@keyframes sk-arm-sway-l { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(11deg); } }
+@keyframes sk-arm-sway-r { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(-11deg); } }
+@keyframes sk-sip-sh { 0%, 70%, 100% { transform: rotate(-10deg); } 80%, 90% { transform: rotate(-24deg); } }
+@keyframes sk-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes sk-thigh-a { 0% { transform: rotate(-22deg); } 50% { transform: rotate(22deg); } 100% { transform: rotate(-22deg); } }
+@keyframes sk-thigh-b { 0% { transform: rotate(22deg); } 50% { transform: rotate(-22deg); } 100% { transform: rotate(22deg); } }
+@keyframes sk-knee-a { 0%, 50% { transform: rotate(4deg); } 75% { transform: rotate(38deg); } 100% { transform: rotate(4deg); } }
+@keyframes sk-knee-b { 0% { transform: rotate(4deg); } 25% { transform: rotate(38deg); } 50%, 100% { transform: rotate(4deg); } }
+@keyframes sk-arm-a { 0%, 100% { transform: rotate(-16deg); } 50% { transform: rotate(24deg); } }
+@keyframes sk-arm-b { 0%, 100% { transform: rotate(16deg); } 50% { transform: rotate(-24deg); } }
+@keyframes sk-wave { from { transform: rotate(-28deg); } to { transform: rotate(22deg); } }
+@keyframes sk-toast-sh {
+  0%, 100% { transform: rotate(-55deg); }
+  35% { transform: rotate(-128deg); }
+  50% { transform: rotate(-118deg); }
+  62% { transform: rotate(-128deg); }
+  85% { transform: rotate(-128deg); }
+}
+@keyframes sk-toast-el {
+  0%, 100% { transform: rotate(-75deg); }
+  35%, 85% { transform: rotate(-30deg); }
+}
+@keyframes sk-toast-glass {
+  0%, 100% { transform: rotate(130deg); }
+  35% { transform: rotate(158deg); }
+  50% { transform: rotate(148deg); }
+  62%, 85% { transform: rotate(158deg); }
+}
+@keyframes sk-sparkle { 0%, 40%, 70%, 100% { opacity: 0; } 50%, 60% { opacity: 1; } }
+@keyframes sk-bow { 0%, 100% { transform: rotate(0deg); } 30%, 60% { transform: rotate(5deg) translateY(3px) scale(1, 0.97); } }
+@keyframes sk-nod { 0%, 100% { transform: translateY(0); } 30%, 60% { transform: translateY(3px) rotate(4deg); } }
+@keyframes sk-write { 0%, 100% { transform: rotate(-34deg); } 50% { transform: rotate(-26deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .av-skel * { animation: none !important; }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(20, 23, 31, 0.16);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 23, 31, 0.28);
+}

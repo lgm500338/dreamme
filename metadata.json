@@ -1,0 +1,6 @@
+{
+  "name": "DreamMe",
+  "description": "LIVE THE LIFE YOU DREAM — 내 얼굴 캐릭터로 직접 들어가 살아보는 2.5D 꿈의 인생 시뮬레이터",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
