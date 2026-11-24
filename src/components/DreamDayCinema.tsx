@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Play,
   Plus,
@@ -12,6 +12,8 @@ import {
   Sunset,
   Moon,
   SkipForward,
+  ImagePlus,
+  Footprints,
 } from 'lucide-react';
 import { DREAM_PLACES } from '../data/places';
 import { tFor } from '../data/i18n';
@@ -26,6 +28,8 @@ import {
 } from '../types/dream';
 import { ambientAudio } from '../utils/ambientAudio';
 import { AvatarRenderer } from './AvatarRenderer';
+import { compressImageFile } from '../utils/storage';
+import { DEFAULT_CUSTOM_FLOOR_Y } from './stage/geometry';
 
 interface DreamDayCinemaProps {
   lang: Language;
@@ -34,6 +38,8 @@ interface DreamDayCinemaProps {
   avatar: AvatarConfig;
   companion: CompanionConfig;
   onChangeSlots: (next: DreamDaySlot[]) => void;
+  /** open the walkable stage for one chapter */
+  onEnterSlot: (slot: DreamDaySlot) => void;
 }
 
 const CALM_ACTIONS: AvatarAction[] = ['stand', 'walk', 'sit', 'wine', 'toast', 'wave', 'greet', 'sign'];
@@ -45,6 +51,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
   avatar,
   companion,
   onChangeSlots,
+  onEnterSlot,
 }) => {
   const t = tFor(lang);
 
@@ -54,6 +61,35 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
   const [selectedTime, setSelectedTime] = useState<TimeOfDay>('day');
   const [selectedAction, setSelectedAction] = useState<AvatarAction>('stand');
   const [affirmation, setAffirmation] = useState('');
+
+  // "내 사진으로 장면 만들기": photo stays on this device (downscaled, stored locally)
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoName, setPhotoName] = useState('');
+  const [floorY, setFloorY] = useState(DEFAULT_CUSTOM_FLOOR_Y);
+  const [photoError, setPhotoError] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
+
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setPhoto(await compressImageFile(file, 1280, 0.8));
+      setFloorY(DEFAULT_CUSTOM_FLOOR_Y);
+      setPhotoError(false);
+    } catch {
+      setPhotoError(true);
+    }
+  };
+
+  const setFloorFromPointer = (clientY: number) => {
+    const box = previewRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const y = (clientY - box.top) / box.height;
+    setFloorY(Math.round(Math.min(0.86, Math.max(0.3, y)) * 100) / 100);
+  };
 
   // Cinema playback state
   const [playing, setPlaying] = useState(false);
@@ -97,7 +133,11 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
     let customImage: string | null = null;
     let customTitle: string | undefined = undefined;
 
-    if (isCustom) {
+    if (photo) {
+      customImage = photo;
+      customTitle = photoName.trim() || (lang === 'ko' ? '내 사진 속 꿈의 장소' : 'My Photo Place');
+      placeId = DREAM_PLACES[0].id;
+    } else if (isCustom) {
       const cid = selectedSource.replace('custom:', '');
       const found = customDreams.find((d) => d.id === cid);
       if (found) {
@@ -116,6 +156,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
       placeId: place.id,
       customImage,
       customTitle,
+      customFloorY: photo ? floorY : undefined,
       timeOfDay: selectedTime,
       action: selectedAction,
       affirmation:
@@ -126,6 +167,8 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
     onChangeSlots([...slots, nextSlot]);
     setSlotLabel('');
     setAffirmation('');
+    setPhoto(null);
+    setPhotoName('');
   };
 
   const moveSlot = (index: number, delta: -1 | 1) => {
@@ -341,6 +384,123 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
             />
           </div>
 
+          {/* My own photo → walkable scene */}
+          <div className="space-y-2 rounded-xl border border-[#DFC390]/70 bg-[#FBF7EE] p-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-[#14171F]">
+                {lang === 'ko' ? '내 사진으로 장면 만들기' : 'Make a scene from my photo'}
+              </span>
+              {photo && (
+                <button
+                  type="button"
+                  onClick={() => setPhoto(null)}
+                  className="inline-flex items-center gap-1 text-xs text-[#5A6170] hover:text-[#14171F] min-h-[32px] px-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>{lang === 'ko' ? '사진 빼기' : 'Remove'}</span>
+                </button>
+              )}
+            </div>
+
+            {!photo ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-[#8A6D3B]/50 bg-white text-sm font-medium text-[#14171F] hover:bg-black/[0.03] min-h-[48px]"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  <span>{lang === 'ko' ? '가고 싶은 곳 사진 올리기' : 'Upload a photo of your dream place'}</span>
+                </button>
+                <p className="text-[11px] leading-relaxed text-[#6B7280]">
+                  {lang === 'ko'
+                    ? '사진 아래쪽이 바닥이 되어 내 아바타가 그 안을 걸어다녀요. 사진은 이 기기에만 저장돼요.'
+                    : 'The bottom of the photo becomes the floor your avatar walks on. The photo stays on this device.'}
+                </p>
+                {photoError && (
+                  <p className="text-[11px] text-red-600">
+                    {lang === 'ko' ? '이 사진은 열 수 없어요. 다른 사진을 골라주세요.' : 'Could not open that photo.'}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center">
+                <div
+                  ref={previewRef}
+                  className="relative rounded-lg overflow-hidden bg-[#14171F] touch-none select-none cursor-ns-resize"
+                  onPointerDown={(e) => {
+                    draggingRef.current = true;
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFloorFromPointer(e.clientY);
+                  }}
+                  onPointerMove={(e) => draggingRef.current && setFloorFromPointer(e.clientY)}
+                  onPointerUp={() => (draggingRef.current = false)}
+                  onPointerCancel={() => (draggingRef.current = false)}
+                >
+                  <img src={photo} alt="" draggable={false} className="block max-w-full max-h-[52vh] pointer-events-none" />
+                  <div
+                    className="absolute inset-x-0 bottom-0 pointer-events-none"
+                    style={{
+                      top: `${floorY * 100}%`,
+                      background: 'linear-gradient(180deg, rgba(223,195,144,0.45), rgba(223,195,144,0.18))',
+                    }}
+                  />
+                  <div
+                    className="absolute inset-x-0 pointer-events-none border-t-2 border-dashed border-white"
+                    style={{ top: `${floorY * 100}%` }}
+                  >
+                    <span className="absolute left-2 top-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                      {lang === 'ko' ? '여기부터 바닥 · 끌어서 맞추기' : 'Floor starts here · drag'}
+                    </span>
+                  </div>
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{ left: '50%', bottom: `${(1 - (floorY + (0.97 - floorY) * 0.6)) * 100}%`, transform: 'translateX(-50%)' }}
+                  >
+                    <AvatarRenderer
+                      name={avatar.name}
+                      facePhoto={avatar.facePhoto}
+                      faceZoom={avatar.faceZoom}
+                      faceOffsetX={avatar.faceOffsetX}
+                      faceOffsetY={avatar.faceOffsetY}
+                      faceWarmth={avatar.faceWarmth}
+                      hairStyle={avatar.hairStyle}
+                      hairColor={avatar.hairColor}
+                      skinTone={avatar.skinTone}
+                      outfit={avatar.outfit}
+                      action="stand"
+                      timeOfDay="day"
+                      visualMode={avatar.facePhoto ? 'photo' : 'illustrated'}
+                      showLabel={false}
+                      size={Math.round(56 + (0.97 - floorY) * 90)}
+                    />
+                  </div>
+                </div>
+                </div>
+                <input
+                  type="range"
+                  min={30}
+                  max={86}
+                  value={Math.round(floorY * 100)}
+                  onChange={(e) => setFloorY(Number(e.target.value) / 100)}
+                  aria-label={lang === 'ko' ? '바닥 높이' : 'Floor height'}
+                  className="w-full accent-[#8A6D3B]"
+                />
+                <input
+                  type="text"
+                  maxLength={30}
+                  value={photoName}
+                  onChange={(e) => setPhotoName(e.target.value)}
+                  placeholder={lang === 'ko' ? '이 장소 이름 (예: 산토리니 노을 테라스)' : 'Name this place'}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-black/12 text-sm text-[#14171F] bg-white focus:outline-none focus:border-[#14171F]"
+                />
+              </>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
+          </div>
+
+          {!photo && (
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-[#5A6170]">{t.dreamDay.selectPlace}</label>
             <select
@@ -366,6 +526,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
               )}
             </select>
           </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -474,6 +635,15 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                       <p className="text-xs text-[#5A6170] line-clamp-2">“{slot.affirmation}”</p>
                     </div>
                     <div className="flex sm:flex-col items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => onEnterSlot(slot)}
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#14171F] text-white text-xs font-medium hover:bg-[#272D3B] min-h-[38px] whitespace-nowrap"
+                        title={lang === 'ko' ? '들어가서 걷기' : 'Walk in it'}
+                      >
+                        <Footprints className="w-3.5 h-3.5" />
+                        <span>{lang === 'ko' ? '들어가기' : 'Enter'}</span>
+                      </button>
                       <button
                         type="button"
                         disabled={index === 0}

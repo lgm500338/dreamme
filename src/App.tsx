@@ -46,6 +46,7 @@ interface ActiveStageSession {
   mode: ExperienceMode;
   customTitle?: string;
   customImage?: string | null;
+  customFloorY?: number;
   timeOfDay?: TimeOfDay;
   action?: AvatarAction;
   affirmation?: string;
@@ -221,6 +222,7 @@ export default function App() {
         place={activeStage.place}
         customTitle={activeStage.customTitle}
         customImage={activeStage.customImage}
+        customFloorY={activeStage.customFloorY}
         initialMode={activeStage.mode}
         initialTime={activeStage.timeOfDay}
         initialAction={activeStage.action}
@@ -721,6 +723,19 @@ export default function App() {
             avatar={store.avatar}
             companion={store.companion}
             onChangeSlots={(dreamDaySlots) => setStore((prev) => ({ ...prev, dreamDaySlots }))}
+            onEnterSlot={(slot) => {
+              const place = DREAM_PLACES.find((p) => p.id === slot.placeId) ?? DREAM_PLACES[0];
+              setActiveStage({
+                place,
+                mode: 'solo',
+                customTitle: slot.customTitle,
+                customImage: slot.customImage,
+                customFloorY: slot.customFloorY,
+                timeOfDay: slot.timeOfDay,
+                action: slot.action,
+                affirmation: slot.affirmation,
+              });
+            }}
           />
         )}
       </main>

@@ -139,6 +139,8 @@ export interface DreamDaySlot {
   placeId: string;
   customImage?: string | null;
   customTitle?: string;
+  /** uploaded photo only: image y (0..1) where the walkable floor starts */
+  customFloorY?: number;
   timeOfDay: TimeOfDay;
   action: AvatarAction;
   affirmation: string;

@@ -96,13 +96,28 @@ export const stepWithCollision = (geo: StageGeometry, from: P, dx: number, dy: n
   return null;
 };
 
-/** Geometry for a user-uploaded photo: lower part of the picture is the floor. */
-export const customGeometry = (aspect: number): StageGeometry => ({
-  imageAspect: aspect,
-  horizonY: 0.45,
-  heightK: 1.2,
-  floor: [[[0.04, 0.62], [0.96, 0.62], [0.98, 0.97], [0.02, 0.97]]],
-  spawn: { x: 0.5, y: 0.82 },
-  seat: { x: 0.62, y: 0.82 },
-  companionSeat: { x: 0.72, y: 0.8 },
-});
+export const DEFAULT_CUSTOM_FLOOR_Y = 0.62;
+
+/**
+ * Geometry for a user-uploaded photo: everything below `floorY` is floor.
+ * People are ~20% of the picture tall at the floor line and grow towards the bottom edge.
+ */
+export const customGeometry = (
+  aspect: number,
+  floorY = DEFAULT_CUSTOM_FLOOR_Y,
+  /** lowest image y still visible on this screen (tall photos get cropped) */
+  visibleBottom = 1
+): StageGeometry => {
+  const bottom = Math.min(0.97, visibleBottom - 0.03);
+  const top = Math.min(bottom - 0.1, Math.max(0.3, floorY));
+  const midY = top + (bottom - top) * 0.6;
+  return {
+    imageAspect: aspect,
+    horizonY: top - 0.17,
+    heightK: 1.2,
+    floor: [[[0.03, top], [0.97, top], [0.99, bottom], [0.01, bottom]]],
+    spawn: { x: 0.5, y: midY },
+    seat: { x: 0.62, y: midY },
+    companionSeat: { x: 0.72, y: midY - 0.02 },
+  };
+};

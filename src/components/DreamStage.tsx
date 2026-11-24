@@ -66,6 +66,7 @@ interface DreamStageProps {
   place: DreamPlace;
   customTitle?: string;
   customImage?: string | null;
+  customFloorY?: number;
   initialMode: ExperienceMode;
   initialTime?: TimeOfDay;
   initialAction?: AvatarAction;
@@ -117,6 +118,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   place,
   customTitle,
   customImage,
+  customFloorY,
   initialMode,
   initialTime = 'day',
   initialAction,
@@ -143,7 +145,8 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   const [affirmation, setAffirmation] = useState<string>(initialAffirmation);
   const [soundOn, setSoundOn] = useState(false);
   const [showVirtualNeighbors, setShowVirtualNeighbors] = useState(virtualNeighborsDefault);
-  const [stampToast, setStampToast] = useState(true);
+  // your own photo is not one of the signature places, so no passport stamp
+  const [stampToast, setStampToast] = useState(!customImage);
   const [snapshotBanner, setSnapshotBanner] = useState<string | null>(null);
   const [latestSnapshotUrl, setLatestSnapshotUrl] = useState<string | null>(null);
   const [customAspect, setCustomAspect] = useState(16 / 9);
@@ -160,9 +163,13 @@ export const DreamStage: React.FC<DreamStageProps> = ({
     return Math.round((0.5 - fx / 2 + 0.065 * fx) * 1000) / 1000;
   }, [stageSize, customImage, customAspect, place.stage.imageAspect]);
   const geo: StageGeometry = useMemo(() => {
-    const base = customImage ? customGeometry(customAspect) : place.stage;
+    let base = place.stage;
+    if (customImage) {
+      const fy = stageSize.w ? coverFraction(stageSize, customAspect).fy : 1;
+      base = customGeometry(customAspect, customFloorY, 0.5 + fy / 2);
+    }
     return { ...base, view: { x0: viewX0, x1: 1 - viewX0 } };
-  }, [customImage, customAspect, place.stage, viewX0]);
+  }, [customImage, customAspect, customFloorY, stageSize, place.stage, viewX0]);
   const geoRef = useRef(geo);
   geoRef.current = geo;
 
@@ -225,7 +232,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
 
   // Record Dream Passport visit once on mount
   useEffect(() => {
-    onRecordVisit(place);
+    if (!customImage) onRecordVisit(place);
     const hideTimer = window.setTimeout(() => setStampToast(false), 3600);
     return () => {
       window.clearTimeout(hideTimer);
