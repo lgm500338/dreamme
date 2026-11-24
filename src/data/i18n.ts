@@ -13,7 +13,7 @@ export const TRANSLATIONS = {
       dreamDay: '꿈의 하루',
     },
     hero: {
-      eyebrow: '2.5D 꿈의 인생 시뮬레이터 · 외부 AI 비용 0원',
+      eyebrow: '꿈의 인생 시뮬레이터',
       title: '바라보는 꿈을 넘어, 그 안에서 살아보세요',
       subtitle:
         '내 얼굴이 담긴 캐릭터로 원하는 장소와 미래의 장면에 직접 들어가 걷고, 쉬고, 실천까지 연결하는 나만의 드림 공간.',
@@ -227,7 +227,7 @@ export const TRANSLATIONS = {
       dreamDay: 'Dream Day',
     },
     hero: {
-      eyebrow: '2.5D Dream Life Simulator · Zero External AI Cost',
+      eyebrow: 'Dream Life Simulator',
       title: 'Do not just look at your dream — live inside it',
       subtitle:
         'Step directly into your future spaces with your personal avatar, feel the atmosphere across day and night, and turn imagination into real daily progress.',

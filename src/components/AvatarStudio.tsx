@@ -40,6 +40,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
   const t = tFor(lang);
   const [studioTab, setStudioTab] = useState<'mine' | 'companion'>('mine');
   const [previewLighting, setPreviewLighting] = useState<TimeOfDay>('day');
+  const [previewMode, setPreviewMode] = useState<'face' | 'full'>('face');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
@@ -128,18 +129,110 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
     night: 'from-[#182235] via-[#222D42] to-[#131826]',
   };
 
+  const tuningActive = Boolean(
+    studioTab === 'mine' ? avatar.facePhoto : companion.visualMode === 'photo' && companion.facePhoto,
+  );
+  const faceOnly = tuningActive && previewMode === 'face';
+
+  const faceTuningBlock = (
+              <div className="w-full rounded-xl bg-white/90 border border-black/8 p-3.5 space-y-3 text-left">
+                <div className="text-xs font-semibold text-[#14171F]">{t.avatar.faceTuning}</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <label className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-[#5A6170]">
+                      <span>{t.avatar.zoom}</span>
+                      <span className="tabular-nums">
+                        {Math.round((studioTab === 'mine' ? avatar.faceZoom : companion.faceZoom) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.85}
+                      max={1.65}
+                      step={0.02}
+                      value={studioTab === 'mine' ? avatar.faceZoom : companion.faceZoom}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (studioTab === 'mine') onUpdateAvatar({ ...avatar, faceZoom: v });
+                        else onUpdateCompanion({ ...companion, faceZoom: v });
+                      }}
+                      className="w-full accent-[#14171F]"
+                    />
+                  </label>
+
+                  <label className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-[#5A6170]">
+                      <span>{t.avatar.posX}</span>
+                      <span className="tabular-nums">
+                        {studioTab === 'mine' ? avatar.faceOffsetX : companion.faceOffsetX}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={-24}
+                      max={24}
+                      step={1}
+                      value={studioTab === 'mine' ? avatar.faceOffsetX : companion.faceOffsetX}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (studioTab === 'mine') onUpdateAvatar({ ...avatar, faceOffsetX: v });
+                        else onUpdateCompanion({ ...companion, faceOffsetX: v });
+                      }}
+                      className="w-full accent-[#14171F]"
+                    />
+                  </label>
+
+                  <label className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-[#5A6170]">
+                      <span>{t.avatar.posY}</span>
+                      <span className="tabular-nums">
+                        {studioTab === 'mine' ? avatar.faceOffsetY : companion.faceOffsetY}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={-24}
+                      max={24}
+                      step={1}
+                      value={studioTab === 'mine' ? avatar.faceOffsetY : companion.faceOffsetY}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (studioTab === 'mine') onUpdateAvatar({ ...avatar, faceOffsetY: v });
+                        else onUpdateCompanion({ ...companion, faceOffsetY: v });
+                      }}
+                      className="w-full accent-[#14171F]"
+                    />
+                  </label>
+
+                  {studioTab === 'mine' && (
+                    <label className="space-y-1.5">
+                      <div className="flex justify-between text-xs text-[#5A6170]">
+                        <span>{t.avatar.warmth}</span>
+                        <span className="tabular-nums">{avatar.faceWarmth}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={-15}
+                        max={20}
+                        step={1}
+                        value={avatar.faceWarmth}
+                        onChange={(e) => onUpdateAvatar({ ...avatar, faceWarmth: Number(e.target.value) })}
+                        className="w-full accent-[#14171F]"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-10 space-y-5 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-black/8 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-black/8 pb-4 sm:pb-6">
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-[#6B7280] tracking-wide">
-            {lang === 'ko' ? '100% 기기 내부 처리 · 외부 서버 전송 없음' : '100% On-Device Processing · Zero External API'}
-          </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold text-[#14171F] tracking-tight text-balance">
+          <h1 className="text-2xl sm:text-4xl font-semibold text-[#14171F] tracking-tight text-balance">
             {t.avatar.title}
           </h1>
-          <p className="text-sm text-[#5A6170] max-w-2xl leading-relaxed">{t.avatar.subtitle}</p>
         </div>
 
         {/* Studio Switcher */}
@@ -176,7 +269,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
         {/* Left: Live Preview Stage */}
         <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-20">
           <div
-            className={`relative rounded-2xl overflow-hidden bg-gradient-to-b ${previewBgStyle[previewLighting]} border border-black/8 p-6 min-h-[370px] flex flex-col items-center justify-between transition-colors duration-500`}
+            className={`relative rounded-2xl overflow-hidden bg-gradient-to-b ${previewBgStyle[previewLighting]} border border-black/8 ${faceOnly ? 'p-3.5 sm:p-5 gap-3' : 'p-6 min-h-[370px]'} flex flex-col items-center justify-between transition-colors duration-500`}
           >
             {/* Lighting Preview Switcher */}
             <div className="w-full flex items-center justify-between">
@@ -215,6 +308,49 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
             </div>
 
             {/* Live Avatar(s) */}
+            {faceOnly ? (
+              <div className="relative overflow-hidden rounded-xl" style={{ width: 130, height: 124 }}>
+                {/* only the head: crop viewBox x 24..96, y 6..75 of a 216px avatar */}
+                <div className="absolute" style={{ left: -43.2, top: -10.8 }}>
+                  {studioTab === 'mine' ? (
+                    <AvatarRenderer
+                      name={avatar.name}
+                      facePhoto={avatar.facePhoto}
+                      faceZoom={avatar.faceZoom}
+                      faceOffsetX={avatar.faceOffsetX}
+                      faceOffsetY={avatar.faceOffsetY}
+                      faceWarmth={avatar.faceWarmth}
+                      hairStyle={avatar.hairStyle}
+                      hairColor={avatar.hairColor}
+                      skinTone={avatar.skinTone}
+                      outfit={avatar.outfit}
+                      action="stand"
+                      timeOfDay={previewLighting}
+                      visualMode="photo"
+                      showLabel={false}
+                      size={216}
+                    />
+                  ) : (
+                    <AvatarRenderer
+                      name={companion.name}
+                      facePhoto={companion.facePhoto}
+                      faceZoom={companion.faceZoom}
+                      faceOffsetX={companion.faceOffsetX}
+                      faceOffsetY={companion.faceOffsetY}
+                      hairStyle={companion.hairStyle}
+                      hairColor={companion.hairColor}
+                      skinTone={companion.skinTone}
+                      outfit={companion.outfit}
+                      action="stand"
+                      timeOfDay={previewLighting}
+                      visualMode="photo"
+                      showLabel={false}
+                      size={216}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
             <div className="flex items-end justify-center gap-4 py-4">
               {studioTab === 'mine' ? (
                 <AvatarRenderer
@@ -273,6 +409,35 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                 </>
               )}
             </div>
+            )}
+
+            {/* Face-only / full-body toggle + fine tuning right under the face */}
+            {tuningActive && (
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-black/10">
+                {(
+                  [
+                    { id: 'face', label: lang === 'ko' ? '얼굴만' : 'Face' },
+                    { id: 'full', label: lang === 'ko' ? '전신 보기' : 'Full body' },
+                  ] as const
+                ).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setPreviewMode(m.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                      previewMode === m.id
+                        ? 'bg-white text-[#14171F] shadow-sm'
+                        : previewLighting === 'night'
+                          ? 'text-white/85'
+                          : 'text-[#14171F]/70'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {tuningActive && faceTuningBlock}
 
             {/* Photo Actions */}
             {(studioTab === 'mine' || companion.visualMode === 'photo') && (
@@ -458,98 +623,6 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-black/12 text-sm text-[#14171F] focus:outline-none focus:border-[#14171F]"
               />
             </div>
-
-            {/* Face Framing Fine-Tuning Sliders (when photo uploaded) */}
-            {(studioTab === 'mine' ? avatar.facePhoto : companion.visualMode === 'photo' && companion.facePhoto) && (
-              <div className="pt-4 border-t border-black/8 space-y-3.5">
-                <div className="text-xs font-semibold text-[#14171F]">{t.avatar.faceTuning}</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-[#5A6170]">
-                      <span>{t.avatar.zoom}</span>
-                      <span className="tabular-nums">
-                        {Math.round((studioTab === 'mine' ? avatar.faceZoom : companion.faceZoom) * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.85}
-                      max={1.65}
-                      step={0.02}
-                      value={studioTab === 'mine' ? avatar.faceZoom : companion.faceZoom}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (studioTab === 'mine') onUpdateAvatar({ ...avatar, faceZoom: v });
-                        else onUpdateCompanion({ ...companion, faceZoom: v });
-                      }}
-                      className="w-full accent-[#14171F]"
-                    />
-                  </label>
-
-                  <label className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-[#5A6170]">
-                      <span>{t.avatar.posX}</span>
-                      <span className="tabular-nums">
-                        {studioTab === 'mine' ? avatar.faceOffsetX : companion.faceOffsetX}
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={-24}
-                      max={24}
-                      step={1}
-                      value={studioTab === 'mine' ? avatar.faceOffsetX : companion.faceOffsetX}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (studioTab === 'mine') onUpdateAvatar({ ...avatar, faceOffsetX: v });
-                        else onUpdateCompanion({ ...companion, faceOffsetX: v });
-                      }}
-                      className="w-full accent-[#14171F]"
-                    />
-                  </label>
-
-                  <label className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-[#5A6170]">
-                      <span>{t.avatar.posY}</span>
-                      <span className="tabular-nums">
-                        {studioTab === 'mine' ? avatar.faceOffsetY : companion.faceOffsetY}
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={-24}
-                      max={24}
-                      step={1}
-                      value={studioTab === 'mine' ? avatar.faceOffsetY : companion.faceOffsetY}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (studioTab === 'mine') onUpdateAvatar({ ...avatar, faceOffsetY: v });
-                        else onUpdateCompanion({ ...companion, faceOffsetY: v });
-                      }}
-                      className="w-full accent-[#14171F]"
-                    />
-                  </label>
-
-                  {studioTab === 'mine' && (
-                    <label className="space-y-1.5">
-                      <div className="flex justify-between text-xs text-[#5A6170]">
-                        <span>{t.avatar.warmth}</span>
-                        <span className="tabular-nums">{avatar.faceWarmth}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={-15}
-                        max={20}
-                        step={1}
-                        value={avatar.faceWarmth}
-                        onChange={(e) => onUpdateAvatar({ ...avatar, faceWarmth: Number(e.target.value) })}
-                        className="w-full accent-[#14171F]"
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Hair, Skin, Outfit */}
             <div className="pt-4 border-t border-black/8 space-y-5">
