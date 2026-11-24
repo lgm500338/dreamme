@@ -16,17 +16,26 @@ export const coverFraction = (stage: StageSize, imageAspect: number) => {
   return rc < imageAspect ? { fx: rc / imageAspect, fy: 1 } : { fx: 1, fy: imageAspect / rc };
 };
 
-/** image fraction (0..1) → stage percent (0..100) */
-export const imgToStage = (p: P, stage: StageSize, aspect: number): P => {
+/**
+ * image fraction (0..1) → stage percent (0..100).
+ * `camX` is the image x at the centre of the screen (0.5 = centred crop; the 9:16 view pans).
+ */
+export const imgToStage = (p: P, stage: StageSize, aspect: number, camX = 0.5): P => {
   const { fx, fy } = coverFraction(stage, aspect);
-  return { x: ((p.x - 0.5) / fx + 0.5) * 100, y: ((p.y - 0.5) / fy + 0.5) * 100 };
+  return { x: ((p.x - camX) / fx + 0.5) * 100, y: ((p.y - 0.5) / fy + 0.5) * 100 };
 };
 
 /** stage percent (0..100) → image fraction (0..1) */
-export const stageToImg = (p: P, stage: StageSize, aspect: number): P => {
+export const stageToImg = (p: P, stage: StageSize, aspect: number, camX = 0.5): P => {
   const { fx, fy } = coverFraction(stage, aspect);
-  return { x: 0.5 + (p.x / 100 - 0.5) * fx, y: 0.5 + (p.y / 100 - 0.5) * fy };
+  return { x: camX + (p.x / 100 - 0.5) * fx, y: 0.5 + (p.y / 100 - 0.5) * fy };
 };
+
+/** keep the camera inside the picture */
+export const clampCam = (camX: number, fx: number) => (fx >= 1 ? 0.5 : Math.min(1 - fx / 2, Math.max(fx / 2, camX)));
+
+/** CSS object-position x (%) that shows the picture centred on camX */
+export const camToObjectPosition = (camX: number, fx: number) => (fx >= 1 ? 50 : ((camX - fx / 2) / (1 - fx)) * 100);
 
 const inPoly = (poly: ImgPt[], x: number, y: number) => {
   let inside = false;

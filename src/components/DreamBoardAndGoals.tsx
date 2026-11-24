@@ -168,7 +168,11 @@ export const DreamBoardView: React.FC<DreamBoardViewProps> = ({
               <img
                 src={snap.imageDataUrl}
                 alt={snap.placeTitle}
-                className="w-full aspect-[10/7] object-cover"
+                className={
+                  snap.frame === 'portrait'
+                    ? 'w-full aspect-[9/16] max-h-[620px] object-contain bg-[#14171F]'
+                    : 'w-full aspect-[10/7] object-cover'
+                }
               />
               <div className="p-4 flex items-center justify-between gap-3 border-t border-black/6">
                 <div className="min-w-0">

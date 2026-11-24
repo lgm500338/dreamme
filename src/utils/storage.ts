@@ -51,6 +51,7 @@ export function getInitialStore(): DreamMeStore {
     streakDays: 1,
     lastActiveDate: getTodayKey(),
     virtualNeighborsDefault: true,
+    frameMode: 'landscape',
   };
 }
 

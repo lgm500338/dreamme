@@ -178,6 +178,8 @@ export interface SavedSnapshot {
   timeOfDay: TimeOfDay;
   imageDataUrl: string;
   createdAt: string;
+  /** 'portrait' = 9:16 shorts card */
+  frame?: FrameMode;
 }
 
 export interface TogetherPeer {
@@ -217,4 +219,8 @@ export interface DreamMeStore {
   streakDays: number;
   lastActiveDate: string | null;
   virtualNeighborsDefault: boolean;
+  /** screen shape for every scene: landscape (default) or 9:16 shorts */
+  frameMode?: FrameMode;
 }
+
+export type FrameMode = 'landscape' | 'portrait';

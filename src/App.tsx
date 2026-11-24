@@ -27,6 +27,7 @@ import {
   PropId,
   SavedSnapshot,
   TimeOfDay,
+  FrameMode,
 } from './types/dream';
 import {
   calculateOverallGoalProgress,
@@ -38,6 +39,7 @@ import { loadReferencedImages, resolveImageRefs } from './utils/imageStore';
 import { AvatarRenderer } from './components/AvatarRenderer';
 import { AvatarStudio } from './components/AvatarStudio';
 import { DreamStage } from './components/DreamStage';
+import { FrameToggle } from './components/FrameToggle';
 import { DreamLifeBuilder } from './components/DreamLifeBuilder';
 import { DreamDayCinema } from './components/DreamDayCinema';
 import { DreamBoardView, MyGoalsView } from './components/DreamBoardAndGoals';
@@ -225,6 +227,9 @@ export default function App() {
     setStore((prev) => ({ ...prev, goals: prev.goals.filter((g) => g.id !== goalId) }));
   };
 
+  const frameMode: FrameMode = store.frameMode ?? 'landscape';
+  const setFrameMode = (mode: FrameMode) => setStore((prev) => ({ ...prev, frameMode: mode }));
+
   const toggleLanguage = () => {
     setStore((prev) => ({ ...prev, language: prev.language === 'ko' ? 'en' : 'ko' }));
   };
@@ -264,6 +269,8 @@ export default function App() {
         onToggleCompanion={(enabled: boolean) =>
           setStore((prev) => ({ ...prev, companion: { ...prev.companion, enabled } }))
         }
+        frameMode={frameMode}
+        onChangeFrameMode={setFrameMode}
       />
     );
   }
@@ -272,7 +279,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#F8F7F4] text-[#14171F] pb-20 md:pb-0">
       {/* Clean 3-Zone Top Bar Contract */}
       <header className="sticky top-0 z-30 h-14 sm:h-16 bg-[#F8F7F4]/92 backdrop-blur-md border-b border-black/8">
-        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-8">
           {/* Zone 1: Single-line Editorial Brand Wordmark */}
           <button
             type="button"
@@ -312,8 +319,9 @@ export default function App() {
             })}
           </nav>
 
-          {/* Zone 3: Single Primary Action */}
-          <div className="flex items-center shrink-0">
+          {/* Zone 3: screen shape + primary action */}
+          <div className="flex items-center gap-2 shrink-0">
+            <FrameToggle lang={lang} value={frameMode} onChange={setFrameMode} compact />
             <button
               type="button"
               onClick={() => setActiveTab('dreamDay')}
@@ -747,6 +755,8 @@ export default function App() {
             avatar={store.avatar}
             companion={store.companion}
             onChangeSlots={(dreamDaySlots) => setStore((prev) => ({ ...prev, dreamDaySlots }))}
+            frameMode={frameMode}
+            onChangeFrameMode={setFrameMode}
             onEnterSlot={(slot) => {
               const place = DREAM_PLACES.find((p) => p.id === slot.placeId) ?? DREAM_PLACES[0];
               setActiveStage({

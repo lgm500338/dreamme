@@ -23,6 +23,7 @@ import {
   CompanionConfig,
   CustomDream,
   DreamDaySlot,
+  FrameMode,
   Language,
   TimeOfDay,
 } from '../types/dream';
@@ -30,6 +31,7 @@ import { ambientAudio } from '../utils/ambientAudio';
 import { AvatarRenderer } from './AvatarRenderer';
 import { compressImageFile } from '../utils/storage';
 import { DEFAULT_CUSTOM_FLOOR_Y } from './stage/geometry';
+import { FrameToggle } from './FrameToggle';
 
 interface DreamDayCinemaProps {
   lang: Language;
@@ -40,6 +42,9 @@ interface DreamDayCinemaProps {
   onChangeSlots: (next: DreamDaySlot[]) => void;
   /** open the walkable stage for one chapter */
   onEnterSlot: (slot: DreamDaySlot) => void;
+  /** landscape (default) or vertical 9:16 shorts framing */
+  frameMode?: FrameMode;
+  onChangeFrameMode?: (mode: FrameMode) => void;
 }
 
 const CALM_ACTIONS: AvatarAction[] = ['stand', 'walk', 'sit', 'wine', 'toast', 'wave', 'greet', 'sign'];
@@ -52,8 +57,11 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
   companion,
   onChangeSlots,
   onEnterSlot,
+  frameMode = 'landscape',
+  onChangeFrameMode,
 }) => {
   const t = tFor(lang);
+  const portrait = frameMode === 'portrait';
 
   // Form state for user to compose their own Dream Day (ZERO forced preset!)
   const [slotLabel, setSlotLabel] = useState('');
@@ -192,15 +200,16 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
     return (
       <div className="fixed inset-0 z-50 bg-[#0A0D12] text-white flex flex-col">
         {/* Top Cinema Bar */}
-        <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/80 to-transparent relative z-20">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 py-4 bg-gradient-to-b from-black/80 to-transparent relative z-20">
+          <div className="min-w-[55%] flex-1">
             <div className="text-xs text-[#DFC390] font-medium">
               {activeSlot.label} · {currentIdx + 1} / {slots.length}
             </div>
             <h2 className="text-xl sm:text-2xl font-semibold text-white">{title}</h2>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            {onChangeFrameMode && <FrameToggle lang={lang} value={frameMode} onChange={onChangeFrameMode} tone="dark" compact />}
             <button
               type="button"
               onClick={() => setCinemaSound((v) => !v)}
@@ -231,7 +240,24 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
         </div>
 
         {/* Fullscreen Visual Canvas */}
-        <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+        <div className="flex-1 relative overflow-hidden">
+          {portrait && (
+            // soft blurred copy of the scene fills the space beside the 9:16 frame
+            <img
+              src={sceneImg}
+              alt=""
+              aria-hidden="true"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-110"
+            />
+          )}
+          <div
+            className={
+              portrait
+                ? 'absolute inset-y-0 left-1/2 -translate-x-1/2 aspect-[9/16] max-w-full overflow-hidden flex items-center justify-center sm:rounded-2xl'
+                : 'absolute inset-0 overflow-hidden flex items-center justify-center'
+            }
+          >
           <img
             key={activeSlot.id}
             src={sceneImg}
@@ -268,7 +294,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
           )}
 
           {/* Avatar + Companion inside the Cinema Scene */}
-          <div className="relative z-10 flex items-end justify-center gap-6 translate-y-16 sm:translate-y-24">
+          <div className={`relative z-10 flex items-end justify-center ${portrait ? 'gap-2 translate-y-6' : 'gap-6 translate-y-16 sm:translate-y-24'}`}>
             <AvatarRenderer
               name={avatar.name}
               facePhoto={avatar.facePhoto}
@@ -285,7 +311,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
               timeOfDay={activeSlot.timeOfDay}
               visualMode={avatar.facePhoto ? 'photo' : 'illustrated'}
               showLabel={false}
-              size={165}
+              size={portrait ? 138 : 165}
             />
             {companion.enabled && (
               <AvatarRenderer
@@ -303,14 +329,14 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                 visualMode={companion.visualMode}
                 facing="left"
                 showLabel={false}
-                size={156}
+                size={portrait ? 130 : 156}
               />
             )}
           </div>
 
           {/* Cinematic Affirmation Subtitle */}
           <div className="absolute inset-x-0 bottom-0 pt-24 pb-10 px-6 bg-gradient-to-t from-black/85 via-black/45 to-transparent text-center z-20">
-            <p className="font-editorial text-2xl sm:text-4xl font-medium text-white max-w-3xl mx-auto leading-snug text-balance">
+            <p className={`font-editorial font-medium ${portrait ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-4xl'} text-white max-w-3xl mx-auto leading-snug text-balance`}>
               “{activeSlot.affirmation}”
             </p>
             {/* Chapter Progress Indicator */}
@@ -327,6 +353,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                 />
               ))}
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -611,7 +638,11 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                     key={slot.id}
                     className="bg-white rounded-2xl border border-black/8 p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
                   >
-                    <div className="w-full sm:w-36 aspect-[16/10] rounded-xl overflow-hidden shrink-0 bg-[#14171F]">
+                    <div
+                      className={`rounded-xl overflow-hidden shrink-0 bg-[#14171F] ${
+                        portrait ? 'w-28 self-center sm:w-20 aspect-[9/16]' : 'w-full sm:w-36 aspect-[16/10]'
+                      }`}
+                    >
                       <img
                         src={slot.customImage || place.image}
                         alt={slot.customTitle || place.name[lang]}
