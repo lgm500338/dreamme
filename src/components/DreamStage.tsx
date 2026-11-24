@@ -66,6 +66,10 @@ interface DreamStageProps {
   place: DreamPlace;
   customTitle?: string;
   customImage?: string | null;
+  customFloorY?: number;
+  /** size of the people in this scene (pinch to change) */
+  initialPeopleScale?: number;
+  onPeopleScaleChange?: (scale: number) => void;
   initialMode: ExperienceMode;
   initialTime?: TimeOfDay;
   initialAction?: AvatarAction;
@@ -117,6 +121,9 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   place,
   customTitle,
   customImage,
+  customFloorY,
+  initialPeopleScale = 1,
+  onPeopleScaleChange,
   initialMode,
   initialTime = 'day',
   initialAction,
@@ -143,12 +150,14 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   const [affirmation, setAffirmation] = useState<string>(initialAffirmation);
   const [soundOn, setSoundOn] = useState(false);
   const [showVirtualNeighbors, setShowVirtualNeighbors] = useState(virtualNeighborsDefault);
-  const [stampToast, setStampToast] = useState(true);
+  // your own photo is not one of the signature places, so no passport stamp
+  const [stampToast, setStampToast] = useState(!customImage);
   const [snapshotBanner, setSnapshotBanner] = useState<string | null>(null);
   const [latestSnapshotUrl, setLatestSnapshotUrl] = useState<string | null>(null);
   const [customAspect, setCustomAspect] = useState(16 / 9);
   const [stageSize, setStageSize] = useState<StageSize>({ w: 0, h: 0 });
   const [, setFrame] = useState(0);
+  const [peopleScale, setPeopleScale] = useState(initialPeopleScale);
 
   const stageImage = customImage || place.image;
   const stageTitle = customTitle || place.name[lang];
@@ -160,9 +169,13 @@ export const DreamStage: React.FC<DreamStageProps> = ({
     return Math.round((0.5 - fx / 2 + 0.065 * fx) * 1000) / 1000;
   }, [stageSize, customImage, customAspect, place.stage.imageAspect]);
   const geo: StageGeometry = useMemo(() => {
-    const base = customImage ? customGeometry(customAspect) : place.stage;
+    let base = place.stage;
+    if (customImage) {
+      const fy = stageSize.w ? coverFraction(stageSize, customAspect).fy : 1;
+      base = customGeometry(customAspect, customFloorY, 0.5 + fy / 2);
+    }
     return { ...base, view: { x0: viewX0, x1: 1 - viewX0 } };
-  }, [customImage, customAspect, place.stage, viewX0]);
+  }, [customImage, customAspect, customFloorY, stageSize, place.stage, viewX0]);
   const geoRef = useRef(geo);
   geoRef.current = geo;
 
@@ -225,7 +238,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
 
   // Record Dream Passport visit once on mount
   useEffect(() => {
-    onRecordVisit(place);
+    if (!customImage) onRecordVisit(place);
     const hideTimer = window.setTimeout(() => setStampToast(false), 3600);
     return () => {
       window.clearTimeout(hideTimer);
@@ -642,7 +655,78 @@ export const DreamStage: React.FC<DreamStageProps> = ({
     setFrame((f) => f + 1);
   };
 
+  // ---------- touch: one finger drags me around, two fingers pinch to resize people ----------
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ dist: number; scale: number } | null>(null);
+  const dragRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const peopleScaleRef = useRef(peopleScale);
+  peopleScaleRef.current = peopleScale;
+
+  const walkTowards = (clientX: number, clientY: number) => {
+    if (!stageRef.current) return;
+    const rect = stageRef.current.getBoundingClientRect();
+    const sp = { x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 100 };
+    const ip = stageToImg(sp, { w: rect.width, h: rect.height }, geo.imageAspect);
+    const me = meRef.current;
+    if (me.idle === 'sit' && !isWalkable(geo, me)) {
+      const p = nearestWalkable(geo, me);
+      me.x = p.x;
+      me.y = p.y;
+    }
+    me.target = nearestWalkable(geo, { x: ip.x, y: Math.max(ip.y, geo.horizonY + 0.01) });
+    me.onArrive = undefined;
+    if (chosenAction === 'sit') setChosenAction('stand');
+  };
+
+  const pinchDist = () => {
+    const [a, b] = Array.from(pointersRef.current.values());
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+
+  const onStagePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse') return; // mouse keeps click-to-walk
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    if (pointersRef.current.size === 2) {
+      dragRef.current = false;
+      pinchRef.current = { dist: Math.max(20, pinchDist()), scale: peopleScaleRef.current };
+      suppressClickRef.current = true;
+    } else if (pointersRef.current.size === 1) {
+      dragRef.current = true;
+    }
+  };
+
+  const onStagePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinchRef.current && pointersRef.current.size >= 2) {
+      const next = pinchRef.current.scale * (pinchDist() / pinchRef.current.dist);
+      setPeopleScale(Math.round(Math.min(2.2, Math.max(0.4, next)) * 100) / 100);
+    } else if (dragRef.current) {
+      walkTowards(e.clientX, e.clientY);
+      suppressClickRef.current = true;
+    }
+  };
+
+  const onStagePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointersRef.current.delete(e.pointerId)) return;
+    if (pinchRef.current && pointersRef.current.size < 2) {
+      pinchRef.current = null;
+      onPeopleScaleChange?.(peopleScaleRef.current);
+    }
+    if (pointersRef.current.size === 0) {
+      dragRef.current = false;
+      window.setTimeout(() => (suppressClickRef.current = false), 50);
+    }
+  };
+
   const handleStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressClickRef.current) return;
     if (!stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
     const sp = { x: ((e.clientX - rect.left) / rect.width) * 100, y: ((e.clientY - rect.top) / rect.height) * 100 };
@@ -995,7 +1079,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
   items.sort((a, b) => a.y - b.y);
 
   const { fy } = coverFraction(stageSize.w ? stageSize : { w: 4, h: 3 }, geo.imageAspect);
-  const figurePx = (y: number) => (personHeight(geo, y) / fy) * stageSize.h;
+  const figurePx = (y: number) => (personHeight(geo, y) / fy) * stageSize.h * peopleScale;
 
   // Name tags float above heads and nudge apart so they never pile up
   const nameTags = (() => {
@@ -1118,12 +1202,16 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         <div
           ref={stageRef}
           onClick={handleStageClick}
+          onPointerDown={onStagePointerDown}
+          onPointerMove={onStagePointerMove}
+          onPointerUp={onStagePointerUp}
+          onPointerCancel={onStagePointerUp}
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             applyParallax(((e.clientX - rect.left) / rect.width - 0.5) * -16, ((e.clientY - rect.top) / rect.height - 0.5) * -8);
           }}
           onMouseLeave={() => applyParallax(0, 0)}
-          className="relative w-full max-w-6xl aspect-[4/3] sm:aspect-[16/9] max-h-[68vh] rounded-2xl overflow-hidden cursor-pointer border border-white/12 shadow-2xl select-none bg-[#161B26]"
+          className="relative w-full max-w-6xl aspect-[4/3] sm:aspect-[16/9] max-h-[68vh] rounded-2xl overflow-hidden cursor-pointer border border-white/12 shadow-2xl select-none touch-none bg-[#161B26]"
         >
           <div
             ref={backdropRef}
@@ -1198,6 +1286,20 @@ export const DreamStage: React.FC<DreamStageProps> = ({
                     : 'radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.24), transparent 68%)',
               }}
             />
+          )}
+
+          {peopleScale !== 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPeopleScale(1);
+                onPeopleScaleChange?.(1);
+              }}
+              className="absolute bottom-3 right-3 z-[130] px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-[11px] text-white"
+            >
+              {lang === 'ko' ? `사람 크기 ${Math.round(peopleScale * 100)}% · 원래대로` : `People ${Math.round(peopleScale * 100)}% · reset`}
+            </button>
           )}
 
           {stampToast && (
