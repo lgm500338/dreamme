@@ -135,10 +135,10 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
   const faceOnly = tuningActive && previewMode === 'face';
 
   const faceTuningBlock = (
-              <div className="w-full rounded-xl bg-white/90 border border-black/8 p-3.5 space-y-3 text-left">
+              <div className="w-full rounded-xl bg-white/90 border border-black/8 px-3.5 py-3 space-y-2 text-left">
                 <div className="text-xs font-semibold text-[#14171F]">{t.avatar.faceTuning}</div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <label className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  <label className="block space-y-0.5">
                     <div className="flex justify-between text-xs text-[#5A6170]">
                       <span>{t.avatar.zoom}</span>
                       <span className="tabular-nums">
@@ -160,7 +160,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                     />
                   </label>
 
-                  <label className="space-y-1.5">
+                  <label className="block space-y-0.5">
                     <div className="flex justify-between text-xs text-[#5A6170]">
                       <span>{t.avatar.posX}</span>
                       <span className="tabular-nums">
@@ -182,7 +182,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                     />
                   </label>
 
-                  <label className="space-y-1.5">
+                  <label className="block space-y-0.5">
                     <div className="flex justify-between text-xs text-[#5A6170]">
                       <span>{t.avatar.posY}</span>
                       <span className="tabular-nums">
@@ -205,7 +205,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                   </label>
 
                   {studioTab === 'mine' && (
-                    <label className="space-y-1.5">
+                    <label className="block space-y-0.5">
                       <div className="flex justify-between text-xs text-[#5A6170]">
                         <span>{t.avatar.warmth}</span>
                         <span className="tabular-nums">{avatar.faceWarmth}</span>
@@ -225,12 +225,98 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
               </div>
   );
 
+  const decorBlock = (
+              <div className="w-full rounded-xl bg-white/90 border border-black/8 px-3.5 py-3 space-y-2.5 text-left">
+              {/* Hair Color & Skin Tone */}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="w-16 shrink-0 text-xs font-medium text-[#5A6170]">{t.avatar.hairColor}</span>
+                  <div className="flex items-center gap-1.5 flex-nowrap">
+                    {HAIR_COLORS.map((hex) => {
+                      const active = (studioTab === 'mine' ? avatar.hairColor : companion.hairColor) === hex;
+                      return (
+                        <button
+                          key={hex}
+                          type="button"
+                          aria-label={hex}
+                          onClick={() => {
+                            if (studioTab === 'mine') onUpdateAvatar({ ...avatar, hairColor: hex });
+                            else onUpdateCompanion({ ...companion, hairColor: hex });
+                          }}
+                          className={`w-7 h-7 rounded-full shrink-0 border-2 flex items-center justify-center transition-transform ${
+                            active ? 'border-[#14171F] scale-110' : 'border-black/10'
+                          }`}
+                          style={{ backgroundColor: hex }}
+                        >
+                          {active && <Check className="w-3.5 h-3.5 text-white" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="w-16 shrink-0 text-xs font-medium text-[#5A6170]">{t.avatar.skinTone}</span>
+                  <div className="flex items-center gap-1.5 flex-nowrap">
+                    {SKIN_TONES.map((st) => {
+                      const active = (studioTab === 'mine' ? avatar.skinTone : companion.skinTone) === st;
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          aria-label={st}
+                          onClick={() => {
+                            if (studioTab === 'mine') onUpdateAvatar({ ...avatar, skinTone: st });
+                            else onUpdateCompanion({ ...companion, skinTone: st });
+                          }}
+                          className={`w-7 h-7 rounded-full shrink-0 border-2 flex items-center justify-center transition-transform ${
+                            active ? 'border-[#14171F] scale-110' : 'border-black/10'
+                          }`}
+                          style={{ backgroundColor: SKIN_PALETTE[st].base }}
+                        >
+                          {active && <Check className="w-3.5 h-3.5 text-[#14171F]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Outfit Style */}
+              <div className="flex items-center gap-3">
+                <span className="w-16 shrink-0 text-xs font-medium text-[#5A6170]">{t.avatar.outfit}</span>
+                <div className="flex gap-1.5 overflow-x-auto min-w-0 pb-0.5">
+                  {OUTFITS.map((of) => {
+                    const active = (studioTab === 'mine' ? avatar.outfit : companion.outfit) === of;
+                    return (
+                      <button
+                        key={of}
+                        type="button"
+                        onClick={() => {
+                          if (studioTab === 'mine') onUpdateAvatar({ ...avatar, outfit: of });
+                          else onUpdateCompanion({ ...companion, outfit: of });
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors min-h-[36px] whitespace-nowrap shrink-0 ${
+                          active
+                            ? 'bg-[#14171F] text-white border-[#14171F]'
+                            : 'bg-white text-[#5A6170] border-black/10 hover:text-[#14171F]'
+                        }`}
+                      >
+                        {t.outfits[of]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-10 space-y-5 sm:space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-10 space-y-3 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-black/8 pb-4 sm:pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 sm:gap-3 sm:border-b border-black/8 sm:pb-6">
         <div className="space-y-1.5">
-          <h1 className="text-2xl sm:text-4xl font-semibold text-[#14171F] tracking-tight text-balance">
+          <h1 className="text-xl sm:text-4xl font-semibold text-[#14171F] tracking-tight text-balance">
             {t.avatar.title}
           </h1>
         </div>
@@ -243,7 +329,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
               stopCamera();
               setStudioTab('mine');
             }}
-            className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors whitespace-nowrap min-h-[40px] ${
+            className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors whitespace-nowrap min-h-[36px] sm:min-h-[40px] ${
               studioTab === 'mine' ? 'bg-white text-[#14171F] shadow-sm' : 'text-[#5A6170] hover:text-[#14171F]'
             }`}
           >
@@ -255,7 +341,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
               stopCamera();
               setStudioTab('companion');
             }}
-            className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors whitespace-nowrap min-h-[40px] ${
+            className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors whitespace-nowrap min-h-[36px] sm:min-h-[40px] ${
               studioTab === 'companion' ? 'bg-white text-[#14171F] shadow-sm' : 'text-[#5A6170] hover:text-[#14171F]'
             }`}
           >
@@ -271,10 +357,23 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
           <div
             className={`relative rounded-2xl overflow-hidden bg-gradient-to-b ${previewBgStyle[previewLighting]} border border-black/8 ${faceOnly ? 'p-3.5 sm:p-5 gap-3' : 'p-6 min-h-[370px]'} flex flex-col items-center justify-between transition-colors duration-500`}
           >
+            <div
+              className={
+                faceOnly
+                  ? 'w-full grid grid-cols-[130px_1fr] gap-x-3 gap-y-2 items-center'
+                  : 'w-full flex-1 flex flex-col items-center justify-between gap-3'
+              }
+            >
             {/* Lighting Preview Switcher */}
-            <div className="w-full flex items-center justify-between">
+            <div
+              className={
+                faceOnly
+                  ? 'col-start-2 row-start-1 self-end flex justify-end'
+                  : 'w-full flex items-center justify-between'
+              }
+            >
               <span
-                className={`text-xs font-medium ${
+                className={`text-xs font-medium ${faceOnly ? 'hidden' : ''} ${
                   previewLighting === 'night' ? 'text-white/80' : 'text-[#14171F]/70'
                 }`}
               >
@@ -295,7 +394,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                       key={item.id}
                       type="button"
                       onClick={() => setPreviewLighting(item.id)}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                      className={`flex items-center gap-1 ${faceOnly ? 'px-2' : 'px-2.5'} py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                         active ? 'bg-white text-[#14171F] shadow-sm' : 'text-white/85 hover:text-white'
                       }`}
                     >
@@ -309,7 +408,7 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
 
             {/* Live Avatar(s) */}
             {faceOnly ? (
-              <div className="relative overflow-hidden rounded-xl" style={{ width: 130, height: 124 }}>
+              <div className="col-start-1 row-start-1 row-span-2 relative overflow-hidden rounded-xl" style={{ width: 130, height: 124 }}>
                 {/* only the head: crop viewBox x 24..96, y 6..75 of a 216px avatar */}
                 <div className="absolute" style={{ left: -43.2, top: -10.8 }}>
                   {studioTab === 'mine' ? (
@@ -413,7 +512,11 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
 
             {/* Face-only / full-body toggle + fine tuning right under the face */}
             {tuningActive && (
-              <div className="flex items-center gap-1 p-1 rounded-lg bg-black/10">
+              <div
+                className={`flex items-center gap-1 p-1 rounded-lg bg-black/10 ${
+                  faceOnly ? 'col-start-2 row-start-2 self-start justify-self-end' : ''
+                }`}
+              >
                 {(
                   [
                     { id: 'face', label: lang === 'ko' ? '얼굴만' : 'Face' },
@@ -437,7 +540,9 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                 ))}
               </div>
             )}
+            </div>
             {tuningActive && faceTuningBlock}
+            {decorBlock}
 
             {/* Photo Actions */}
             {(studioTab === 'mine' || companion.visualMode === 'photo') && (
@@ -607,25 +712,8 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
 
           {/* Identity & Face Alignment */}
           <div className="bg-white rounded-2xl border border-black/8 p-5 sm:p-6 space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-[#5A6170]">{t.avatar.nameLabel}</label>
-              <input
-                type="text"
-                maxLength={20}
-                value={studioTab === 'mine' ? avatar.name : companion.name}
-                onChange={(e) => {
-                  if (studioTab === 'mine') {
-                    onUpdateAvatar({ ...avatar, name: e.target.value });
-                  } else {
-                    onUpdateCompanion({ ...companion, name: e.target.value });
-                  }
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-black/12 text-sm text-[#14171F] focus:outline-none focus:border-[#14171F]"
-              />
-            </div>
-
-            {/* Hair, Skin, Outfit */}
-            <div className="pt-4 border-t border-black/8 space-y-5">
+            {/* Hair style (colors, skin and outfit live under the face preview) */}
+            <div className="space-y-5">
               {/* Hair Style */}
               <div className="space-y-2">
                 <span className="text-xs font-medium text-[#5A6170]">{t.avatar.hairStyle}</span>
@@ -653,87 +741,6 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
                 </div>
               </div>
 
-              {/* Hair Color & Skin Tone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-[#5A6170]">{t.avatar.hairColor}</span>
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {HAIR_COLORS.map((hex) => {
-                      const active = (studioTab === 'mine' ? avatar.hairColor : companion.hairColor) === hex;
-                      return (
-                        <button
-                          key={hex}
-                          type="button"
-                          aria-label={hex}
-                          onClick={() => {
-                            if (studioTab === 'mine') onUpdateAvatar({ ...avatar, hairColor: hex });
-                            else onUpdateCompanion({ ...companion, hairColor: hex });
-                          }}
-                          className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-transform ${
-                            active ? 'border-[#14171F] scale-110' : 'border-black/10'
-                          }`}
-                          style={{ backgroundColor: hex }}
-                        >
-                          {active && <Check className="w-4 h-4 text-white" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-[#5A6170]">{t.avatar.skinTone}</span>
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {SKIN_TONES.map((st) => {
-                      const active = (studioTab === 'mine' ? avatar.skinTone : companion.skinTone) === st;
-                      return (
-                        <button
-                          key={st}
-                          type="button"
-                          aria-label={st}
-                          onClick={() => {
-                            if (studioTab === 'mine') onUpdateAvatar({ ...avatar, skinTone: st });
-                            else onUpdateCompanion({ ...companion, skinTone: st });
-                          }}
-                          className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-transform ${
-                            active ? 'border-[#14171F] scale-110' : 'border-black/10'
-                          }`}
-                          style={{ backgroundColor: SKIN_PALETTE[st].base }}
-                        >
-                          {active && <Check className="w-4 h-4 text-[#14171F]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Outfit Style */}
-              <div className="space-y-2">
-                <span className="text-xs font-medium text-[#5A6170]">{t.avatar.outfit}</span>
-                <div className="flex flex-wrap gap-2">
-                  {OUTFITS.map((of) => {
-                    const active = (studioTab === 'mine' ? avatar.outfit : companion.outfit) === of;
-                    return (
-                      <button
-                        key={of}
-                        type="button"
-                        onClick={() => {
-                          if (studioTab === 'mine') onUpdateAvatar({ ...avatar, outfit: of });
-                          else onUpdateCompanion({ ...companion, outfit: of });
-                        }}
-                        className={`px-3.5 py-2 rounded-lg text-xs font-medium border transition-colors min-h-[40px] whitespace-nowrap ${
-                          active
-                            ? 'bg-[#14171F] text-white border-[#14171F]'
-                            : 'bg-white text-[#5A6170] border-black/10 hover:text-[#14171F]'
-                        }`}
-                      >
-                        {t.outfits[of]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </div>
 
