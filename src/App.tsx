@@ -34,6 +34,7 @@ import {
   loadStore,
   saveStore,
 } from './utils/storage';
+import { loadReferencedImages, resolveImageRefs } from './utils/imageStore';
 import { AvatarRenderer } from './components/AvatarRenderer';
 import { AvatarStudio } from './components/AvatarStudio';
 import { DreamStage } from './components/DreamStage';
@@ -47,6 +48,8 @@ interface ActiveStageSession {
   customTitle?: string;
   customImage?: string | null;
   customFloorY?: number;
+  slotId?: string;
+  peopleScale?: number;
   timeOfDay?: TimeOfDay;
   action?: AvatarAction;
   affirmation?: string;
@@ -65,6 +68,18 @@ export default function App() {
   const lang = store.language;
   const t = tFor(lang);
   const goalProgress = useMemo(() => calculateOverallGoalProgress(store.goals), [store.goals]);
+
+  // Pictures are kept in IndexedDB; swap their references for the real images once loaded
+  useEffect(() => {
+    let alive = true;
+    loadReferencedImages(store).then((images) => {
+      if (alive) setStore((prev) => resolveImageRefs(prev, images));
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist locally on every change (100% offline-capable)
   // (debounced: the store holds photos & postcards, so stringifying it on every tap caused jank)
@@ -223,6 +238,15 @@ export default function App() {
         customTitle={activeStage.customTitle}
         customImage={activeStage.customImage}
         customFloorY={activeStage.customFloorY}
+        initialPeopleScale={activeStage.peopleScale}
+        onPeopleScaleChange={(peopleScale) => {
+          const slotId = activeStage.slotId;
+          if (!slotId) return;
+          setStore((prev) => ({
+            ...prev,
+            dreamDaySlots: prev.dreamDaySlots.map((s) => (s.id === slotId ? { ...s, peopleScale } : s)),
+          }));
+        }}
         initialMode={activeStage.mode}
         initialTime={activeStage.timeOfDay}
         initialAction={activeStage.action}
@@ -731,6 +755,8 @@ export default function App() {
                 customTitle: slot.customTitle,
                 customImage: slot.customImage,
                 customFloorY: slot.customFloorY,
+                slotId: slot.id,
+                peopleScale: slot.peopleScale,
                 timeOfDay: slot.timeOfDay,
                 action: slot.action,
                 affirmation: slot.affirmation,

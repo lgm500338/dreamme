@@ -141,6 +141,8 @@ export interface DreamDaySlot {
   customTitle?: string;
   /** uploaded photo only: image y (0..1) where the walkable floor starts */
   customFloorY?: number;
+  /** people size in this scene, set by pinching (1 = normal) */
+  peopleScale?: number;
   timeOfDay: TimeOfDay;
   action: AvatarAction;
   affirmation: string;

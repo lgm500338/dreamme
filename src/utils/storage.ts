@@ -1,5 +1,6 @@
 import { DEFAULT_GOALS } from '../data/places';
 import { DreamMeStore } from '../types/dream';
+import { externalizeImages } from './imageStore';
 
 const STORAGE_KEY = 'dreamme_store_v1';
 
@@ -94,8 +95,18 @@ export function loadStore(): DreamMeStore {
   }
 }
 
+let saveChain: Promise<void> = Promise.resolve();
+
+/** Saves in order: pictures go to IndexedDB first, then the small JSON goes to localStorage. */
 export function saveStore(store: DreamMeStore): void {
   if (typeof window === 'undefined') return;
+  saveChain = saveChain
+    .then(() => externalizeImages(store))
+    .catch(() => store)
+    .then((slim) => writeLocal(slim));
+}
+
+function writeLocal(store: DreamMeStore): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {
