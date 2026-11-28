@@ -21,7 +21,7 @@ import {
   PartyPopper,
 } from 'lucide-react';
 import { AVATAR_PROPS } from '../data/places';
-import { tFor } from '../data/i18n';
+import { tFor, pick, localeFor } from '../data/i18n';
 import {
   AvatarAction,
   AvatarConfig,
@@ -972,7 +972,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
         ctx.fillText(stageTitle, photoW / 2, photoH - 200);
         ctx.fillStyle = 'rgba(255,255,255,0.78)';
         ctx.font = '400 32px "Plus Jakarta Sans", "Noto Sans KR", sans-serif';
-        const d = new Date().toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const d = new Date().toLocaleDateString(localeFor(lang), { year: 'numeric', month: 'long', day: 'numeric' });
         ctx.fillText(`${avatar.name} · ${d}`, photoW / 2, photoH - 140);
         ctx.fillStyle = '#DFC390';
         ctx.font = '600 36px Georgia, serif';
@@ -997,7 +997,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
       ctx.fillText(stageTitle, pad, pad + photoH + 62);
       ctx.fillStyle = '#5A6170';
       ctx.font = '400 18px "Plus Jakarta Sans", "Noto Sans KR", sans-serif';
-      const dateStr = new Date().toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const dateStr = new Date().toLocaleDateString(localeFor(lang), { year: 'numeric', month: 'long', day: 'numeric' });
       ctx.fillText(`${avatar.name} · ${place.location[lang]} · ${dateStr}`, pad, pad + photoH + 98);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#8A6D3B';
@@ -1200,9 +1200,12 @@ export const DreamStage: React.FC<DreamStageProps> = ({
       onChange={onJoystick}
       size={portrait ? 104 : 112}
       labels={
-        lang === 'ko'
-          ? { forward: '앞', back: '뒤', left: '왼쪽', right: '오른쪽' }
-          : { forward: 'Fwd', back: 'Back', left: 'Left', right: 'Right' }
+        pick(
+          lang,
+          { forward: '앞', back: '뒤', left: '왼쪽', right: '오른쪽' },
+          { forward: 'Fwd', back: 'Back', left: 'Left', right: 'Right' },
+          { forward: 'Adelante', back: 'Atrás', left: 'Izq.', right: 'Der.' }
+        )
       }
     />
   );
@@ -1415,7 +1418,7 @@ export const DreamStage: React.FC<DreamStageProps> = ({
               }}
               className="absolute bottom-3 right-3 z-[130] px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/15 text-[11px] text-white"
             >
-              {lang === 'ko' ? `사람 크기 ${Math.round(peopleScale * 100)}% · 원래대로` : `People ${Math.round(peopleScale * 100)}% · reset`}
+              {pick(lang, `사람 크기 ${Math.round(peopleScale * 100)}% · 원래대로`, `People ${Math.round(peopleScale * 100)}% · reset`, `Personas ${Math.round(peopleScale * 100)}% · restablecer`)}
             </button>
           )}
 

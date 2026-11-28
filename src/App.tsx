@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { DREAM_CATEGORIES, DREAM_PLACES, matchDreamSentenceToPlace } from './data/places';
-import { tFor } from './data/i18n';
+import { tFor, pick, LANGUAGE_OPTIONS } from './data/i18n';
 import {
   AvatarAction,
   CustomDream,
@@ -28,6 +28,7 @@ import {
   SavedSnapshot,
   TimeOfDay,
   FrameMode,
+  Language,
 } from './types/dream';
 import {
   calculateOverallGoalProgress,
@@ -134,6 +135,8 @@ export default function App() {
         place.name.en.toLowerCase().includes(q) ||
         place.location.ko.toLowerCase().includes(q) ||
         place.location.en.toLowerCase().includes(q) ||
+        place.name.es.toLowerCase().includes(q) ||
+        place.location.es.toLowerCase().includes(q) ||
         place.description.ko.toLowerCase().includes(q) ||
         place.searchAliases.some((a) => a.toLowerCase().includes(q) || q.includes(a.toLowerCase()))
       );
@@ -195,7 +198,7 @@ export default function App() {
   const handleAddDreamToDay = (dream: CustomDream) => {
     const newSlot: DreamDaySlot = {
       id: `slot_${Date.now()}`,
-      label: lang === 'ko' ? `장면 ${store.dreamDaySlots.length + 1}` : `Chapter ${store.dreamDaySlots.length + 1}`,
+      label: pick(lang, `장면 ${store.dreamDaySlots.length + 1}`, `Chapter ${store.dreamDaySlots.length + 1}`, `Capítulo ${store.dreamDaySlots.length + 1}`),
       placeId: dream.matchedPlaceId,
       customImage: dream.customImage,
       customTitle: dream.title,
@@ -230,8 +233,8 @@ export default function App() {
   const frameMode: FrameMode = store.frameMode ?? 'landscape';
   const setFrameMode = (mode: FrameMode) => setStore((prev) => ({ ...prev, frameMode: mode }));
 
-  const toggleLanguage = () => {
-    setStore((prev) => ({ ...prev, language: prev.language === 'ko' ? 'en' : 'ko' }));
+  const setLanguage = (language: Language) => {
+    setStore((prev) => ({ ...prev, language }));
   };
 
   // Fullscreen 2.5D Interactive Stage View
@@ -325,13 +328,13 @@ export default function App() {
             <button
               type="button"
               onClick={() => setActiveTab('dreamDay')}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 min-h-[40px] ${
+              className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 min-h-[40px] ${
                 activeTab === 'dreamDay'
                   ? 'bg-[#8A6D3B] text-white'
                   : 'bg-[#14171F] text-white hover:bg-[#272D3B]'
               }`}
             >
-              <Film className="w-3.5 h-3.5" />
+              <Film className="w-3.5 h-3.5 max-[400px]:hidden" />
               <span>{t.nav.dreamDay}</span>
             </button>
           </div>
@@ -350,14 +353,28 @@ export default function App() {
                     <p className="text-xs font-medium text-[#8A6D3B] tracking-wide">
                       {t.hero.eyebrow}
                     </p>
-                    <button
-                      type="button"
-                      onClick={toggleLanguage}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5A6170] hover:text-[#14171F] transition-colors whitespace-nowrap shrink-0 py-1 px-2 rounded-md hover:bg-black/5"
+                    <div
+                      role="radiogroup"
+                      aria-label="Language"
+                      className="inline-flex items-center gap-0.5 shrink-0 text-xs font-medium text-[#5A6170]"
                     >
-                      <Globe className="w-3.5 h-3.5" />
-                      <span>{lang === 'ko' ? 'EN' : '한국어'}</span>
-                    </button>
+                      <Globe className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
+                      {LANGUAGE_OPTIONS.map((o) => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={lang === o.id}
+                          aria-label={o.full}
+                          onClick={() => setLanguage(o.id)}
+                          className={`min-w-[32px] py-1 px-1.5 rounded-md transition-colors whitespace-nowrap ${
+                            lang === o.id ? 'bg-[#14171F] text-white' : 'hover:bg-black/5 hover:text-[#14171F]'
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <h1 className="text-4xl sm:text-5xl font-semibold text-[#14171F] leading-[1.12] tracking-tight text-balance">
@@ -503,9 +520,12 @@ export default function App() {
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-[#14171F]">{t.search.noDirectMatch}</p>
                     <p className="text-xs text-[#5A6170]">
-                      {lang === 'ko'
-                        ? `가장 어울리는 테마 공간: ${closestSuggestion.place.name.ko}`
-                        : `Closest theme match: ${closestSuggestion.place.name.en}`}
+                      {pick(
+                        lang,
+                        `가장 어울리는 테마 공간: ${closestSuggestion.place.name.ko}`,
+                        `Closest theme match: ${closestSuggestion.place.name.en}`,
+                        `Tema más parecido: ${closestSuggestion.place.name.es}`
+                      )}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -582,7 +602,7 @@ export default function App() {
                         <div className="pt-3 border-t border-black/6 flex items-center justify-between text-xs font-medium text-[#14171F]">
                           <span className="text-[#6B7280]">{place.location[lang]}</span>
                           <span className="group-hover:translate-x-0.5 transition-transform">
-                            {lang === 'ko' ? '입장하기 →' : 'Enter →'}
+                            {pick(lang, '입장하기 →', 'Enter →', 'Entrar →')}
                           </span>
                         </div>
                       </div>
@@ -617,7 +637,7 @@ export default function App() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
             <div className="border-b border-black/8 pb-6 space-y-1.5">
               <p className="text-xs font-medium text-[#6B7280]">
-                {lang === 'ko' ? '실시간 공동 공간 · 손 흔들기 & 응원 인사' : 'Real-Time Shared Spaces · Calm Waves & Greetings'}
+                {pick(lang, '실시간 공동 공간 · 손 흔들기 & 응원 인사', 'Real-Time Shared Spaces · Calm Waves & Greetings', 'Espacios compartidos en directo · Saludos y ánimos')}
               </p>
               <h1 className="text-3xl sm:text-4xl font-semibold text-[#14171F] tracking-tight">
                 {t.togetherPage.title}
@@ -681,12 +701,8 @@ export default function App() {
                           {liveCount > 0
                             ? `${liveCount}${t.search.liveNow}`
                             : store.virtualNeighborsDefault
-                            ? lang === 'ko'
-                              ? '가상 이웃 3명 산책 중'
-                              : '3 virtual neighbors strolling'
-                            : lang === 'ko'
-                            ? '조용한 공간'
-                            : 'Quiet room'}
+                            ? pick(lang, '가상 이웃 3명 산책 중', '3 virtual neighbors strolling', '3 vecinos virtuales paseando')
+                            : pick(lang, '조용한 공간', 'Quiet room', 'Sala tranquila')}
                         </div>
                         <h3 className="text-lg font-semibold text-[#14171F] mt-1">
                           {place.name[lang]}
@@ -780,13 +796,18 @@ export default function App() {
       <footer className="hidden md:block border-t border-black/8 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between text-xs text-[#6B7280]">
           <span>DreamMe · {t.brandSubtitle}</span>
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="hover:text-[#14171F] transition-colors"
-          >
-            {lang === 'ko' ? 'Switch to English' : '한국어로 보기'}
-          </button>
+          <div className="flex items-center gap-3">
+            {LANGUAGE_OPTIONS.filter((o) => o.id !== lang).map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => setLanguage(o.id)}
+                className="hover:text-[#14171F] transition-colors"
+              >
+                {o.full}
+              </button>
+            ))}
+          </div>
         </div>
       </footer>
 

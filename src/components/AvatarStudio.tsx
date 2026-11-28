@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Upload, RotateCcw, Lock, Check, Sun, Sunset, Moon, ShieldCheck } from 'lucide-react';
 import { AVATAR_PROPS } from '../data/places';
-import { tFor } from '../data/i18n';
+import { tFor, pick } from '../data/i18n';
 import {
   AvatarConfig,
   CompanionConfig,
@@ -73,9 +73,12 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
       });
     } catch {
       setCameraError(
-        lang === 'ko'
-          ? '카메라 권한이 허용되지 않았거나 기기에서 카메라를 열 수 없습니다. 대신 [사진 불러오기]를 이용해 주세요.'
-          : 'Camera permission is unavailable. Please use Upload Photo instead.'
+        pick(
+          lang,
+          '카메라 권한이 허용되지 않았거나 기기에서 카메라를 열 수 없습니다. 대신 [사진 불러오기]를 이용해 주세요.',
+          'Camera permission is unavailable. Please use Upload Photo instead.',
+          'No se puede usar la cámara. Usa Subir foto en su lugar.'
+        )
       );
     }
   };
@@ -519,8 +522,8 @@ export const AvatarStudio: React.FC<AvatarStudioProps> = ({
               >
                 {(
                   [
-                    { id: 'face', label: lang === 'ko' ? '얼굴만' : 'Face' },
-                    { id: 'full', label: lang === 'ko' ? '전신 보기' : 'Full body' },
+                    { id: 'face', label: pick(lang, '얼굴만', 'Face', 'Cara') },
+                    { id: 'full', label: pick(lang, '전신 보기', 'Full body', 'Cuerpo entero') },
                   ] as const
                 ).map((m) => (
                   <button

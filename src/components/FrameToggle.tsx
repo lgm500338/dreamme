@@ -1,5 +1,6 @@
 import React from 'react';
 import { FrameMode, Language } from '../types/dream';
+import { pick } from '../data/i18n';
 
 /** Two-way switch: 가로 (landscape, default) ↔ 세로 9:16 (TikTok / Shorts). */
 export const FrameToggle: React.FC<{
@@ -11,13 +12,13 @@ export const FrameToggle: React.FC<{
 }> = ({ lang, value, onChange, tone = 'light', compact = false }) => {
   const dark = tone === 'dark';
   const opts: Array<{ id: FrameMode; label: string; short: string; box: string }> = [
-    { id: 'landscape', label: lang === 'ko' ? '가로' : 'Wide', short: lang === 'ko' ? '가로' : 'Wide', box: 'w-[14px] h-[9px]' },
-    { id: 'portrait', label: lang === 'ko' ? '세로 9:16' : 'Vertical 9:16', short: lang === 'ko' ? '세로' : '9:16', box: 'w-[9px] h-[14px]' },
+    { id: 'landscape', label: pick(lang, '가로', 'Wide', 'Horizontal'), short: pick(lang, '가로', 'Wide', 'Horiz.'), box: 'w-[14px] h-[9px]' },
+    { id: 'portrait', label: pick(lang, '세로 9:16', 'Vertical 9:16', 'Vertical 9:16'), short: pick(lang, '세로', '9:16', '9:16'), box: 'w-[9px] h-[14px]' },
   ];
   return (
     <div
       role="radiogroup"
-      aria-label={lang === 'ko' ? '화면 비율' : 'Screen shape'}
+      aria-label={pick(lang, '화면 비율', 'Screen shape', 'Formato de pantalla')}
       className={`inline-flex items-center p-1 rounded-lg shrink-0 ${dark ? 'bg-white/8' : 'bg-black/[0.05] border border-black/8'}`}
     >
       {opts.map((o) => {

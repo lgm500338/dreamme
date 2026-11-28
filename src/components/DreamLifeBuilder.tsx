@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Upload, X, Play, CalendarPlus, Trash2, Sparkles, Sun, Sunset, Moon } from 'lucide-react';
 import { DREAM_PLACES, matchDreamSentenceToPlace } from '../data/places';
-import { tFor } from '../data/i18n';
+import { tFor, pick } from '../data/i18n';
 import {
   AvatarAction,
   CustomDream,
@@ -85,7 +85,7 @@ export const DreamLifeBuilder: React.FC<DreamLifeBuilderProps> = ({
       {/* Header */}
       <div className="border-b border-black/8 pb-6 space-y-1.5">
         <p className="text-xs font-medium text-[#6B7280]">
-          {lang === 'ko' ? 'Dream Life · 나만의 미래 직접 만들기' : 'Dream Life · Design Any Future Moment'}
+          {pick(lang, 'Dream Life · 나만의 미래 직접 만들기', 'Dream Life · Design Any Future Moment', 'Dream Life · Diseña cualquier momento futuro')}
         </p>
         <h1 className="text-3xl sm:text-4xl font-semibold text-[#14171F] tracking-tight text-balance">
           {t.dreamLife.title}
@@ -114,18 +114,25 @@ export const DreamLifeBuilder: React.FC<DreamLifeBuilderProps> = ({
             />
             {/* Quick Inspiration Prompts */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1 text-xs text-[#5A6170]">
-              {(lang === 'ko'
-                ? [
+              {pick(
+                lang,
+                [
                     '좋아하는 사람과 분위기 좋은 레스토랑에서 저녁 먹기',
                     '10kg 감량하고 명품 옷 쇼핑하기',
                     '내 이름으로 책 출간하고 작가 사인회 하기',
                     '60평 한강뷰 아파트에서 여유로운 주말 보내기',
-                  ]
-                : [
+                  ],
+                [
                     'Candlelit dinner with someone special',
                     'Lose 10kg and shop at a luxury flagship boutique',
                     'Publish my book and host an author signing',
                     'Peaceful morning in my 60-pyeong river view apartment',
+                  ],
+                [
+                    'Cena a la luz de las velas con alguien especial',
+                    'Perder 10 kg e ir de compras a una boutique de lujo',
+                    'Publicar mi libro y hacer una firma de autor',
+                    'Una mañana tranquila en mi piso con vistas al río',
                   ]
               ).map((example) => (
                 <button
@@ -252,9 +259,7 @@ export const DreamLifeBuilder: React.FC<DreamLifeBuilderProps> = ({
               <div className="text-[11px] text-white/75">{t.dreamLife.matchedSceneLabel}</div>
               <div className="text-base font-semibold mt-0.5">
                 {customPhoto
-                  ? lang === 'ko'
-                    ? '내가 업로드한 전용 배경'
-                    : 'My Uploaded Scene'
+                  ? pick(lang, '내가 업로드한 전용 배경', 'My Uploaded Scene', 'Mi foto de fondo')
                   : matched.place.name[lang]}
               </div>
               <div className="text-xs text-white/75 mt-0.5">
@@ -322,9 +327,7 @@ export const DreamLifeBuilder: React.FC<DreamLifeBuilderProps> = ({
                         onClick={() => {
                           onAddDreamToDay(dream);
                           setAddedToast(
-                            lang === 'ko'
-                              ? '나의 꿈의 하루에 추가되었습니다.'
-                              : 'Added to your Dream Day.'
+                            pick(lang, '나의 꿈의 하루에 추가되었습니다.', 'Added to your Dream Day.', 'Añadido a tu día soñado.')
                           );
                           window.setTimeout(() => setAddedToast(null), 3000);
                         }}
