@@ -1,4 +1,4 @@
-export type Language = 'ko' | 'en';
+export type Language = 'ko' | 'en' | 'es';
 
 export type TimeOfDay = 'day' | 'sunset' | 'night';
 
@@ -76,9 +76,9 @@ export interface CompanionConfig {
 export interface DreamPlace {
   id: string;
   category: DreamCategoryId;
-  name: { ko: string; en: string };
-  location: { ko: string; en: string };
-  description: { ko: string; en: string };
+  name: { ko: string; en: string; es: string };
+  location: { ko: string; en: string; es: string };
+  description: { ko: string; en: string; es: string };
   image: string;
   soundTheme: SoundTheme;
   recommendedMode: ExperienceMode;
@@ -202,9 +202,9 @@ export interface TogetherPeer {
 
 export interface PropDefinition {
   id: PropId;
-  name: { ko: string; en: string };
+  name: { ko: string; en: string; es: string };
   unlockProgress: number; // 0 = default unlocked, 1..100 = goal completion %
-  unlockHint: { ko: string; en: string };
+  unlockHint: { ko: string; en: string; es: string };
 }
 
 export interface DreamMeStore {

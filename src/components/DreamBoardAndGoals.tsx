@@ -11,7 +11,7 @@ import {
   Unlock,
 } from 'lucide-react';
 import { AVATAR_PROPS, DREAM_PLACES } from '../data/places';
-import { tFor } from '../data/i18n';
+import { tFor, pick, localeFor } from '../data/i18n';
 import {
   DreamPlace,
   GoalItem,
@@ -109,9 +109,12 @@ export const DreamBoardView: React.FC<DreamBoardViewProps> = ({
             <div>
               <h2 className="text-2xl font-semibold text-[#14171F]">DREAMME PASSPORT</h2>
               <p className="text-xs text-[#6B7280] mt-0.5">
-                {lang === 'ko'
-                  ? '꿈의 공간에 방문할 때마다 입국 스탬프가 기록됩니다.'
-                  : 'Every dream space visited leaves a dated stamp in your personal passport.'}
+                {pick(
+                  lang,
+                  '꿈의 공간에 방문할 때마다 입국 스탬프가 기록됩니다.',
+                  'Every dream space visited leaves a dated stamp in your personal passport.',
+                  'Cada lugar soñado que visitas deja un sello con fecha en tu pasaporte.'
+                )}
               </p>
             </div>
             <span className="text-xs font-medium text-[#8A6D3B] tabular-nums">
@@ -143,10 +146,10 @@ export const DreamBoardView: React.FC<DreamBoardViewProps> = ({
                       </span>
                     </div>
                     <div className="text-base font-semibold text-[#14171F] mt-2">
-                      {lang === 'ko' ? st.placeNameKo : st.placeNameEn}
+                      {pick(lang, st.placeNameKo, st.placeNameEn, DREAM_PLACES.find((p) => p.id === st.placeId)?.name.es ?? st.placeNameEn)}
                     </div>
                     <div className="text-[11px] text-[#6B7280] mt-3 tabular-nums">
-                      {new Date(st.firstVisitedAt).toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US')}
+                      {new Date(st.firstVisitedAt).toLocaleDateString(localeFor(lang))}
                     </div>
                   </button>
                 );
@@ -227,7 +230,7 @@ export const MyGoalsView: React.FC<MyGoalsViewProps> = ({
   const t = tFor(lang);
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('10');
-  const [unit, setUnit] = useState(lang === 'ko' ? '회' : 'times');
+  const [unit, setUnit] = useState(pick(lang, '회', 'times', 'veces'));
   const [step, setStep] = useState('1');
   const [linkedPlaceId, setLinkedPlaceId] = useState(DREAM_PLACES[0].id);
 
@@ -247,7 +250,7 @@ export const MyGoalsView: React.FC<MyGoalsViewProps> = ({
       category: place.category,
       current: 0,
       target: numTarget,
-      unit: unit.trim() || (lang === 'ko' ? '회' : 'x'),
+      unit: unit.trim() || pick(lang, '회', 'x', 'x'),
       step: numStep,
       linkedPlaceId: place.id,
       lastCheckedDate: null,
@@ -386,7 +389,7 @@ export const MyGoalsView: React.FC<MyGoalsViewProps> = ({
                   <div className="flex items-center gap-2">
                     {checkedToday && (
                       <span className="text-[11px] text-[#8A6D3B] font-medium">
-                        {lang === 'ko' ? '오늘 기록됨' : 'Logged today'}
+                        {pick(lang, '오늘 기록됨', 'Logged today', 'Registrado hoy')}
                       </span>
                     )}
                     <button
@@ -411,7 +414,7 @@ export const MyGoalsView: React.FC<MyGoalsViewProps> = ({
           <h2 className="text-lg font-semibold text-[#14171F]">{t.goals.addGoalTitle}</h2>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[#5A6170]">{t.goals.goalTitlePlaceholder.slice(0, 12)}</label>
+            <label className="text-xs font-medium text-[#5A6170]">{lang === 'es' ? 'Tu meta' : t.goals.goalTitlePlaceholder.slice(0, 12)}</label>
             <input
               type="text"
               required

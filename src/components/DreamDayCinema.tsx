@@ -16,7 +16,7 @@ import {
   Footprints,
 } from 'lucide-react';
 import { DREAM_PLACES } from '../data/places';
-import { tFor } from '../data/i18n';
+import { tFor, pick } from '../data/i18n';
 import {
   AvatarAction,
   AvatarConfig,
@@ -143,7 +143,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
 
     if (photo) {
       customImage = photo;
-      customTitle = photoName.trim() || (lang === 'ko' ? '내 사진 속 꿈의 장소' : 'My Photo Place');
+      customTitle = photoName.trim() || pick(lang, '내 사진 속 꿈의 장소', 'My Photo Place', 'Mi lugar en foto');
       placeId = DREAM_PLACES[0].id;
     } else if (isCustom) {
       const cid = selectedSource.replace('custom:', '');
@@ -160,7 +160,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
       id: `slot_${Date.now()}`,
       label:
         slotLabel.trim() ||
-        (lang === 'ko' ? `장면 ${slots.length + 1}` : `Chapter ${slots.length + 1}`),
+        pick(lang, `장면 ${slots.length + 1}`, `Chapter ${slots.length + 1}`, `Capítulo ${slots.length + 1}`),
       placeId: place.id,
       customImage,
       customTitle,
@@ -366,9 +366,12 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-black/8 pb-6">
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-[#6B7280]">
-            {lang === 'ko'
-              ? 'Dream Day Cinema · 100% 내가 직접 구성하는 하루'
-              : 'Dream Day Cinema · 100% User-Composed Routine'}
+            {pick(
+              lang,
+              'Dream Day Cinema · 100% 내가 직접 구성하는 하루',
+              'Dream Day Cinema · 100% User-Composed Routine',
+              'Dream Day Cinema · Un día creado 100 % por ti'
+            )}
           </p>
           <h1 className="text-3xl sm:text-4xl font-semibold text-[#14171F] tracking-tight text-balance">
             {t.dreamDay.title}
@@ -415,7 +418,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
           <div className="space-y-2 rounded-xl border border-[#DFC390]/70 bg-[#FBF7EE] p-3.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold text-[#14171F]">
-                {lang === 'ko' ? '내 사진으로 장면 만들기' : 'Make a scene from my photo'}
+                {pick(lang, '내 사진으로 장면 만들기', 'Make a scene from my photo', 'Crear una escena con mi foto')}
               </span>
               {photo && (
                 <button
@@ -424,7 +427,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                   className="inline-flex items-center gap-1 text-xs text-[#5A6170] hover:text-[#14171F] min-h-[32px] px-1"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>{lang === 'ko' ? '사진 빼기' : 'Remove'}</span>
+                  <span>{pick(lang, '사진 빼기', 'Remove', 'Quitar')}</span>
                 </button>
               )}
             </div>
@@ -437,16 +440,19 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-[#8A6D3B]/50 bg-white text-sm font-medium text-[#14171F] hover:bg-black/[0.03] min-h-[48px]"
                 >
                   <ImagePlus className="w-4 h-4" />
-                  <span>{lang === 'ko' ? '가고 싶은 곳 사진 올리기' : 'Upload a photo of your dream place'}</span>
+                  <span>{pick(lang, '가고 싶은 곳 사진 올리기', 'Upload a photo of your dream place', 'Sube una foto de tu lugar soñado')}</span>
                 </button>
                 <p className="text-[11px] leading-relaxed text-[#6B7280]">
-                  {lang === 'ko'
-                    ? '사진 아래쪽이 바닥이 되어 내 아바타가 그 안을 걸어다녀요. 사진은 이 기기에만 저장돼요.'
-                    : 'The bottom of the photo becomes the floor your avatar walks on. The photo stays on this device.'}
+                  {pick(
+                    lang,
+                    '사진 아래쪽이 바닥이 되어 내 아바타가 그 안을 걸어다녀요. 사진은 이 기기에만 저장돼요.',
+                    'The bottom of the photo becomes the floor your avatar walks on. The photo stays on this device.',
+                    'La parte de abajo de la foto será el suelo por el que camina tu avatar. La foto se queda en este dispositivo.'
+                  )}
                 </p>
                 {photoError && (
                   <p className="text-[11px] text-red-600">
-                    {lang === 'ko' ? '이 사진은 열 수 없어요. 다른 사진을 골라주세요.' : 'Could not open that photo.'}
+                    {pick(lang, '이 사진은 열 수 없어요. 다른 사진을 골라주세요.', 'Could not open that photo.', 'No se pudo abrir esa foto. Elige otra.')}
                   </p>
                 )}
               </>
@@ -478,7 +484,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                     style={{ top: `${floorY * 100}%` }}
                   >
                     <span className="absolute left-2 top-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                      {lang === 'ko' ? '여기부터 바닥 · 끌어서 맞추기' : 'Floor starts here · drag'}
+                      {pick(lang, '여기부터 바닥 · 끌어서 맞추기', 'Floor starts here · drag', 'El suelo empieza aquí · arrastra')}
                     </span>
                   </div>
                   <div
@@ -511,7 +517,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                   max={86}
                   value={Math.round(floorY * 100)}
                   onChange={(e) => setFloorY(Number(e.target.value) / 100)}
-                  aria-label={lang === 'ko' ? '바닥 높이' : 'Floor height'}
+                  aria-label={pick(lang, '바닥 높이', 'Floor height', 'Altura del suelo')}
                   className="w-full accent-[#8A6D3B]"
                 />
                 <input
@@ -519,7 +525,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                   maxLength={30}
                   value={photoName}
                   onChange={(e) => setPhotoName(e.target.value)}
-                  placeholder={lang === 'ko' ? '이 장소 이름 (예: 산토리니 노을 테라스)' : 'Name this place'}
+                  placeholder={pick(lang, '이 장소 이름 (예: 산토리니 노을 테라스)', 'Name this place', 'Nombre de este lugar')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-black/12 text-sm text-[#14171F] bg-white focus:outline-none focus:border-[#14171F]"
                 />
               </>
@@ -535,7 +541,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
               onChange={(e) => setSelectedSource(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-black/12 text-sm text-[#14171F] bg-white focus:outline-none focus:border-[#14171F]"
             >
-              <optgroup label={lang === 'ko' ? '기본 꿈의 장소' : 'Signature Dream Places'}>
+              <optgroup label={pick(lang, '기본 꿈의 장소', 'Signature Dream Places', 'Lugares soñados')}>
                 {DREAM_PLACES.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name[lang]}
@@ -543,7 +549,7 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                 ))}
               </optgroup>
               {customDreams.length > 0 && (
-                <optgroup label={lang === 'ko' ? '내가 직접 만든 꿈' : 'My Custom Dreams'}>
+                <optgroup label={pick(lang, '내가 직접 만든 꿈', 'My Custom Dreams', 'Mis sueños')}>
                   {customDreams.map((d) => (
                     <option key={d.id} value={`custom:${d.id}`}>
                       {d.title}
@@ -670,10 +676,10 @@ export const DreamDayCinema: React.FC<DreamDayCinemaProps> = ({
                         type="button"
                         onClick={() => onEnterSlot(slot)}
                         className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#14171F] text-white text-xs font-medium hover:bg-[#272D3B] min-h-[38px] whitespace-nowrap"
-                        title={lang === 'ko' ? '들어가서 걷기' : 'Walk in it'}
+                        title={pick(lang, '들어가서 걷기', 'Walk in it', 'Entrar y caminar')}
                       >
                         <Footprints className="w-3.5 h-3.5" />
-                        <span>{lang === 'ko' ? '들어가기' : 'Enter'}</span>
+                        <span>{pick(lang, '들어가기', 'Enter', 'Entrar')}</span>
                       </button>
                       <button
                         type="button"
